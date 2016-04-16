@@ -19,3 +19,5 @@
 *.vpwhistu
 *.vtg
 /stamp-h1
+src/.libs/*
+
