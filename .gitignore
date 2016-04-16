@@ -7,7 +7,6 @@
 *.status
 *.sub
 /configure
-*.ac
 /depcomp
 /install-sh
 /libtool
