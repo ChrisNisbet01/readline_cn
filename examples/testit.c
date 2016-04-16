@@ -11,7 +11,7 @@
 
 static char * arg0_items[] =
 {
-    "def2",
+    "def1",
     "abc",
     "def",
     "def3abc",
