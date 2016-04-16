@@ -1,4 +1,4 @@
-#include "editline.h"
+#include "readline.h"
 #include "directory.h"
 #include "split_path.h"
 

@@ -1,4 +1,4 @@
-#include "editline_context.h"
+#include "readline_context.h"
 
 #include <stdlib.h>
 #include <unistd.h>

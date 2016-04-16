@@ -1,4 +1,4 @@
-#include "editline.h"
+#include "readline.h"
 
 #include <stdbool.h>
 #include <config.h>

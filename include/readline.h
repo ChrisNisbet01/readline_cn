@@ -1,5 +1,5 @@
-#ifndef __EDITLINE_H__
-#define __EDITLINE_H__
+#ifndef __READLINE_H__
+#define __READLINE_H__
 
 #include <stdio.h>
 #include <stddef.h>
@@ -73,4 +73,4 @@ int do_filename_completion(completion_context_st * const completion_context,
                            void * const user_context);
 
 
-#endif  /* __EDITLINE_H__ */
+#endif  /* __READLINE_H__ */

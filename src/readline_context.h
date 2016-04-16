@@ -1,7 +1,7 @@
-#ifndef __EDITLINE_CONTEXT_H__
-#define __EDITLINE_CONTEXT_H__
+#ifndef __READLINE_CONTEXT_H__
+#define __READLINE_CONTEXT_H__
 
-#include "editline.h"
+#include "readline.h"
 #include "history.h"
 
 #include <termios.h>
@@ -25,4 +25,4 @@ struct editline_st
     completion_callback_fn completion_callback;
 }; 
 
-#endif /* __EDITLINE_CONTEXT_H__ */
+#endif /* __READLINE_CONTEXT_H__ */

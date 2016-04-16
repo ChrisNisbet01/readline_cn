@@ -1,6 +1,6 @@
 AC_PREREQ(2.61)
-AC_INIT([editline], [1.0], [nisbet@ihug.co.nz])
-AC_CONFIG_SRCDIR([src/editline.c])
+AC_INIT([readline_cn], [1.0], [nisbet@ihug.co.nz])
+AC_CONFIG_SRCDIR([src/readline.c])
 AC_CONFIG_HEADER([config.h])
 
 # Prepare automake

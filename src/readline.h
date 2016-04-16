@@ -1,7 +1,7 @@
-#ifndef __PRIVATE_EDITLINE_H__
-#define __PRIVATE_EDITLINE_H__
+#ifndef __READLINE_PRIVATE_H__
+#define __READLINE_PRIVATE_H__
 
-#include "../include/editline.h"
+#include "../include/readline.h"
 #include "args.h"
 #include "line_context.h"
 #include "tokenise.h"
@@ -25,4 +25,4 @@ struct private_completion_context_st
     completion_context_st public_context;
 }; 
 
-#endif  /* __PRIVATE_EDITLINE_H__ */
+#endif /* __READLINE_PRIVATE_H__ */

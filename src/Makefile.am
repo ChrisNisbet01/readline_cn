@@ -1,8 +1,8 @@
 AUTOMAKE_OPTIONS = foreign
-lib_LTLIBRARIES = libeditline.la
-libeditline_la_SOURCES = editline.c \
+lib_LTLIBRARIES = libreadline_cn.la
+libreadline_cn_la_SOURCES = readline.c \
 						word_completion.c \
-						editline_context.c \
+						readline_context.c \
 						filename_completion.c \
 						args.c \
 						terminal.c \
@@ -16,5 +16,5 @@ libeditline_la_SOURCES = editline.c \
 						history.c \
 						history_entries.c
 						
-libeditline_la_CFLAGS = -D_GNU_SOURCE -Wall -Werror -Wno-unused-result
+libreadline_cn_la_CFLAGS = -D_GNU_SOURCE -Wall -Werror -Wno-unused-result
 

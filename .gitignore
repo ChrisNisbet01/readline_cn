@@ -18,5 +18,6 @@
 *.vtg
 /stamp-h1
 src/.libs/*
+src/.deps/*
 examples/.deps/*
 

@@ -4,7 +4,7 @@
 #include "strdup_partial.h"
 #include "common_prefix_length.h"
 #include "print_words_in_columns.h"
-#include "editline_context.h"
+#include "readline_context.h"
 #include "terminal.h"
 
 #include <stddef.h>
