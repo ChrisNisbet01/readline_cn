@@ -238,9 +238,9 @@ static void process_unique_match(private_completion_context_st * const private_c
 }
 
 static void process_multiple_matches(private_completion_context_st * const private_completion_context,
-                                     editline_st * const editline_ctx)
+                                     readline_st * const readline_ctx)
 {
-    line_context_st * const line_ctx = &editline_ctx->line_context;
+    line_context_st * const line_ctx = &readline_ctx->line_context;
     completion_context_st * const completion_context = &private_completion_context->public_context;
     bool need_to_redisplay_line;
 
@@ -253,8 +253,8 @@ static void process_multiple_matches(private_completion_context_st * const priva
     completion_context->write_back_fp = NULL;
     if (private_completion_context->freeform_text != NULL && private_completion_context->freeform_text_len > 0)
     {
-        tty_puts(editline_ctx->out_fd, newline_str);
-        tty_puts(editline_ctx->out_fd, private_completion_context->freeform_text);
+        tty_puts(readline_ctx->out_fd, newline_str);
+        tty_puts(readline_ctx->out_fd, private_completion_context->freeform_text);
         need_to_redisplay_line = true;
     }
 
@@ -271,8 +271,8 @@ static void process_multiple_matches(private_completion_context_st * const priva
             qsort(private_completion_context->possible_words->argv,
                   private_completion_context->possible_words->argc, sizeof( *private_completion_context->possible_words->argv),
                   qsort_string_compare);
-            print_words_in_columns(editline_ctx->out_fd,
-                                   editline_ctx->terminal_width,
+            print_words_in_columns(readline_ctx->out_fd,
+                                   readline_ctx->terminal_width,
                                    private_completion_context->possible_words->argc,
                                    private_completion_context->possible_words->argv);
             need_to_redisplay_line = true;
@@ -293,30 +293,30 @@ static void process_multiple_matches(private_completion_context_st * const priva
     if (need_to_redisplay_line)
     {
         tty_puts(line_ctx->terminal_fd, newline_str);
-        redisplay_line(line_ctx, editline_ctx->prompt);
+        redisplay_line(line_ctx, readline_ctx->prompt);
     }
 }
 
 static void private_completion_context_process_results(private_completion_context_st * const private_completion_context,
-                                                       editline_st * const editline_ctx)
+                                                       readline_st * const readline_ctx)
 {
 
     if (private_completion_context->unique_match != NULL)
     {
-        process_unique_match(private_completion_context, &editline_ctx->line_context);
+        process_unique_match(private_completion_context, &readline_ctx->line_context);
     }
     else
     {
-        process_multiple_matches(private_completion_context, editline_ctx);
+        process_multiple_matches(private_completion_context, readline_ctx);
     }
 
 }
 
-void do_word_completion(editline_st * const editline_ctx)
+void do_word_completion(readline_st * const readline_ctx)
 {
-    if (editline_ctx->completion_callback != NULL)
+    if (readline_ctx->completion_callback != NULL)
     {
-        line_context_st * const line_ctx = &editline_ctx->line_context;
+        line_context_st * const line_ctx = &readline_ctx->line_context;
         private_completion_context_st private_completion_context;
 
         if (!private_completion_context_init(&private_completion_context, line_ctx))
@@ -324,10 +324,10 @@ void do_word_completion(editline_st * const editline_ctx)
             goto done;
         }
 
-        editline_ctx->completion_callback(&private_completion_context.public_context,
-                                          editline_ctx->user_completion_context);
+        readline_ctx->completion_callback(&private_completion_context.public_context,
+                                          readline_ctx->user_completion_context);
 
-        private_completion_context_process_results(&private_completion_context, editline_ctx);
+        private_completion_context_process_results(&private_completion_context, readline_ctx);
 
         private_completion_context_teardown(&private_completion_context);
     }

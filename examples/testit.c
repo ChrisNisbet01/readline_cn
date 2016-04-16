@@ -73,12 +73,12 @@ static void free_args(size_t argc, char const * * const argv)
 int main(int argc, char * argv[]__attribute__((unused)))
 {
     char * prompt; 
-    editline_st * editline_ctx;
+    readline_st * readline_ctx;
     bool do_read_line;
 
     prompt = "prompt> ";
 
-    editline_ctx = editline_context_create(NULL, 
+    readline_ctx = readline_context_create(NULL, 
                                            test_completion_callback, 
                                            STDIN_FILENO, 
                                            STDOUT_FILENO, 
@@ -89,12 +89,12 @@ int main(int argc, char * argv[]__attribute__((unused)))
         char * line = NULL;
         size_t argc; 
         char const * * argv = NULL;
-        //editline_result_t const result = readline(editline_ctx, 60, prompt, &line);
-        editline_result_t const result = readline_args(editline_ctx, 60, prompt, &argc, &argv);
+        //readline_result_t const result = readline(readline_ctx, 60, prompt, &line);
+        readline_result_t const result = readline_args(readline_ctx, 60, prompt, &argc, &argv);
 
         switch (result)
         {
-            case editline_result_success:
+            case readline_result_success:
             {
                 int index;
                 
@@ -105,19 +105,19 @@ int main(int argc, char * argv[]__attribute__((unused)))
                 do_read_line = true;
                     break;
             }
-            case editline_result_ctrl_c:
+            case readline_result_ctrl_c:
                 do_read_line = false;
                 printf("Got CTRL-C\n");
                 break;
-            case editline_result_timed_out:
+            case readline_result_timed_out:
                 do_read_line = false;
                 printf("Timed out\n");
                 break;
-            case editline_result_eof:
+            case readline_result_eof:
                 do_read_line = false;
                 printf("Got EOF\n");
                 break;
-            case editline_result_error:
+            case readline_result_error:
                 do_read_line = false;
                 printf("Got error\n");
                 break;
@@ -127,7 +127,7 @@ int main(int argc, char * argv[]__attribute__((unused)))
     }
     while (do_read_line);
 
-    editline_context_destroy(editline_ctx);
+    readline_context_destroy(readline_ctx);
 
     return 0;
 }

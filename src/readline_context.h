@@ -7,7 +7,7 @@
 #include <termios.h>
 #include <stdbool.h>
 
-struct editline_st
+struct readline_st
 {
     int out_fd;
     int in_fd;

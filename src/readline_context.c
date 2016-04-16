@@ -3,53 +3,53 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-static editline_st * editline_context_alloc(void)
+static readline_st * readline_context_alloc(void)
 {
-    editline_st * editline_ctx;
+    readline_st * readline_ctx;
 
-    editline_ctx = (editline_st *)calloc(1, sizeof *editline_ctx);
+    readline_ctx = (readline_st *)calloc(1, sizeof *readline_ctx);
 
-    return editline_ctx;
+    return readline_ctx;
 }
 
-static void editline_context_free(editline_st * const editline_ctx)
+static void readline_context_free(readline_st * const readline_ctx)
 {
-    line_buffer_teardown(&editline_ctx->line_context);
-    history_free(editline_ctx->history);
-    free((void *)editline_ctx->saved_line);
-    free(editline_ctx);
+    line_buffer_teardown(&readline_ctx->line_context);
+    history_free(readline_ctx->history);
+    free((void *)readline_ctx->saved_line);
+    free(readline_ctx);
 }
 
-editline_st * editline_context_create(void * const user_completion_context, 
+readline_st * readline_context_create(void * const user_completion_context, 
                                       completion_callback_fn const completion_callback,
                                       int input_fd,
                                       int output_fd,
                                       size_t const history_size)
 {
-    editline_st * editline_ctx;
+    readline_st * readline_ctx;
 
-    editline_ctx = editline_context_alloc();
-    if (editline_ctx == NULL)
+    readline_ctx = readline_context_alloc();
+    if (readline_ctx == NULL)
     {
         goto done;
     }
-    editline_ctx->insert_mode = true;
+    readline_ctx->insert_mode = true;
 
-    editline_ctx->user_completion_context = user_completion_context;
-    editline_ctx->completion_callback = completion_callback;
-    editline_ctx->history = history_alloc(history_size);
-    editline_ctx->out_fd = output_fd;
-    editline_ctx->in_fd = input_fd;
-    editline_ctx->is_a_terminal = isatty(editline_ctx->in_fd);
+    readline_ctx->user_completion_context = user_completion_context;
+    readline_ctx->completion_callback = completion_callback;
+    readline_ctx->history = history_alloc(history_size);
+    readline_ctx->out_fd = output_fd;
+    readline_ctx->in_fd = input_fd;
+    readline_ctx->is_a_terminal = isatty(readline_ctx->in_fd);
 
 done:
 
-    return editline_ctx;
+    return readline_ctx;
 }
 
-void editline_context_destroy(editline_st * const editline_ctx)
+void readline_context_destroy(readline_st * const readline_ctx)
 {
-    editline_context_free(editline_ctx);
+    readline_context_free(readline_ctx);
 }
 
 
