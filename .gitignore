@@ -20,4 +20,5 @@
 *.vtg
 /stamp-h1
 src/.libs/*
+examples/.deps/*
 
