@@ -20,4 +20,5 @@
 src/.libs/*
 src/.deps/*
 examples/.deps/*
+autom4te.cache/*
 
