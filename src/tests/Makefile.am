@@ -5,7 +5,13 @@ test_ldflags = -lCppUTest -lCppUTestExt
 test_cxxflags = -D_GNU_SOURCE -Wall -Werror -Wno-unused-result -I..
 test_cflags = -D_GNU_SOURCE -Wall -Werror -Wno-unused-result -I..
 
-check_PROGRAMS = test_history_entries test_history test_common_prefix_length test_strdup_partial test_split_path
+check_PROGRAMS = \
+			test_history_entries \
+			test_history \
+			test_common_prefix_length \
+			test_strdup_partial \
+			test_split_path \
+			test_tokenise
 
 test_history_entries_SOURCES = AllTests.cpp test_history_entries.cpp ../history_entries.c
 test_history_entries_LDFLAGS = $(test_ldflags)
@@ -31,6 +37,11 @@ test_split_path_SOURCES = AllTests.cpp test_split_path.cpp ../split_path.c ../st
 test_split_path_LDFLAGS = $(test_ldflags)
 test_split_path_CXXFLAGS = $(test_cxxflags)
 test_split_path_CFLAGS = $(test_cflags)
+
+test_tokenise_SOURCES = AllTests.cpp test_tokenise.cpp ../tokenise.c ../strdup_partial.c
+test_tokenise_LDFLAGS = $(test_ldflags)
+test_tokenise_CXXFLAGS = $(test_cxxflags)
+test_tokenise_CFLAGS = $(test_cflags)
 
 TESTS = $(check_PROGRAMS)
 
