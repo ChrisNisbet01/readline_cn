@@ -13,13 +13,15 @@ struct line_context_st
     size_t line_length; /* Current length of the line. */
     size_t cursor_index; /* Location of the cursor in the line. */
     int terminal_fd; /* The file descriptor to write to when updating the terminal. */
+    int mask_character; /* if non-zero, the character to write to the terminal instead of the actual character entered. */
 }; 
 
-bool line_buffer_init(line_context_st * const line_context, 
+bool line_context_init(line_context_st * const line_context,
                       size_t const initial_size, 
                       size_t const size_increment,
-                      int const terminal_fd);
-void line_buffer_teardown(line_context_st * const line_context);
+                      int const terminal_fd,
+                      int const mask_character);
+void line_context_teardown(line_context_st * const line_context);
 void move_cursor_right_n_columns(line_context_st * const line_ctx, size_t columns);
 void move_cursor_left_n_columns(line_context_st * const line_ctx, size_t const columns);
 void delete_char_to_the_left(line_context_st * const line_ctx);

@@ -248,14 +248,20 @@ done:
 
 static readline_status_t handle_enter(readline_st const * const readline_ctx)
 {
-    tty_puts(readline_ctx->out_fd, newline_str);
+    tty_puts(readline_ctx->out_fd, newline_str, '\0');
 
     return readline_status_done;
 }
 
 static void handle_tab(readline_st * const readline_ctx)
 {
-    do_word_completion(readline_ctx);
+    /* Word completion isn't performed if the user has requested 
+     * to mask the input characters. 
+     */
+    if (readline_ctx->mask_character == '\0')
+    {
+        do_word_completion(readline_ctx);
+    }
 }
 
 static readline_status_t handle_control_char(readline_st * const readline_ctx, int const ch)
@@ -283,7 +289,6 @@ static readline_status_t handle_control_char(readline_st * const readline_ctx, i
 static void handle_regular_char(readline_st * const readline_ctx, int const ch, bool const update_terminal)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;    
-
     write_char(line_ctx, ch, readline_ctx->insert_mode, update_terminal);
 }
 
@@ -389,7 +394,7 @@ static readline_status_t edit_input(readline_st * const readline_ctx)
 
     if (readline_ctx->is_a_terminal)
     {
-        tty_puts(readline_ctx->out_fd, readline_ctx->prompt);
+        tty_puts(readline_ctx->out_fd, readline_ctx->prompt, '\0');
     }
 
     do
@@ -406,10 +411,11 @@ static bool readline_init(readline_st * const readline_ctx)
     bool readline_prepared;
     line_context_st * const line_ctx = &readline_ctx->line_context;
 
-    if (!line_buffer_init(line_ctx,
+    if (!line_context_init(line_ctx,
                           INITIAL_LINE_BUFFER_SIZE,
                           LINE_BUFFER_SIZE_INCREMENT,
-                          readline_ctx->out_fd))
+                          readline_ctx->out_fd,
+                          readline_ctx->mask_character))
     {
         readline_prepared = false;
         goto done;
@@ -441,7 +447,7 @@ static void readline_cleanup(readline_st * const readline_ctx)
         restore_terminal(&readline_ctx->previous_terminal_settings);
     }
 
-    line_buffer_teardown(line_ctx);
+    line_context_teardown(line_ctx);
     free_saved_line(&readline_ctx->saved_line);
 }
 
@@ -466,14 +472,15 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
     {
         case readline_status_done:
         {
-            if (readline_ctx->history_enabled)
-            {
-                if (readline_ctx->is_a_terminal)
-                {
-                    history_st * history = readline_ctx->history;
+            bool const should_add_to_history = readline_ctx->history_enabled &&
+                                               readline_ctx->is_a_terminal &&
+                                               readline_ctx->mask_character == '\0';
 
-                    history_add(history, line_ctx->buffer);
-                }
+            if (should_add_to_history)
+            {
+                history_st * history = readline_ctx->history;
+
+                history_add(history, line_ctx->buffer);
             }
             *line = line_ctx->buffer;
             line_ctx->buffer = NULL;

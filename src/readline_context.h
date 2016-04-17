@@ -16,6 +16,7 @@ struct readline_st
     int terminal_width;
     struct termios previous_terminal_settings;
     char const * prompt;
+    int mask_character;    /* if non-zero, the terminal writes out this character rather than the actual character. */
 
     line_context_st line_context;
 

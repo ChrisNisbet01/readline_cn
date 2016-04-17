@@ -14,7 +14,7 @@ static readline_st * readline_context_alloc(void)
 
 static void readline_context_free(readline_st * const readline_ctx)
 {
-    line_buffer_teardown(&readline_ctx->line_context);
+    line_context_teardown(&readline_ctx->line_context);
     history_free(readline_ctx->history);
     free((void *)readline_ctx->saved_line);
     free(readline_ctx);
@@ -60,4 +60,13 @@ bool readline_context_history_control(readline_st * const readline_ctx, bool con
     readline_ctx->history_enabled = enable;
 
     return previous_enable_state;
+}
+
+char readline_context_mask_character_control(readline_st * const readline_ctx, char const mask_character)
+{
+    char const previous_mask_character = readline_ctx->mask_character;
+
+    readline_ctx->mask_character = mask_character;
+
+    return previous_mask_character;
 }

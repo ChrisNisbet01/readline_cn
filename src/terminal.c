@@ -9,19 +9,21 @@
 
 #define DEFAULT_SCREEN_COLUMNS 80
 
-void tty_put(int const out_fd, const char c)
+void tty_put(int const out_fd, const char ch)
 {
     // TODO: Don't ignore return value.
-    (void)write(out_fd, &c, sizeof c);
+    (void)write(out_fd, &ch, sizeof ch);
 }
 
-void tty_puts(int const out_fd, const char * const string)
+void tty_puts(int const out_fd, const char * const string, const char mask_character)
 {
     char const * p = string;
 
-    while ( *p)
+    while (*p != '\0')
     {
-        tty_put(out_fd, *p);
+        char const char_to_put = (mask_character != '\0') ? mask_character : *p;
+
+        tty_put(out_fd, char_to_put);
         p++;
     }
 }
@@ -190,7 +192,7 @@ bool move_physical_cursor_right(int const out_fd, size_t columns)
     snprintf(buffer, sizeof buffer, "\033[%zuC", columns);
 
     // TODO: check for write error
-    tty_puts(out_fd, buffer);
+    tty_puts(out_fd, buffer, '\0');
     cursor_moved = true;
 
     return cursor_moved;
@@ -204,7 +206,7 @@ bool move_physical_cursor_left(int const out_fd, size_t columns)
     snprintf(buffer, sizeof buffer, "\033[%zuD", columns);
 
     // TODO: check for write error
-    tty_puts(out_fd, buffer);
+    tty_puts(out_fd, buffer, '\0');
     cursor_moved = true;
 
     return cursor_moved;
@@ -212,5 +214,5 @@ bool move_physical_cursor_left(int const out_fd, size_t columns)
 
 void delete_to_end_of_line(int const out_fd)
 {
-    tty_puts(out_fd, "\033[K");
+    tty_puts(out_fd, "\033[K", '\0');
 }

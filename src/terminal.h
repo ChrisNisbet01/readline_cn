@@ -13,7 +13,7 @@ typedef enum tty_get_result_t
 } tty_get_result_t;
 
 void tty_put(int const out_fd, const char c);
-void tty_puts(int const out_fd, const char * const string);
+void tty_puts(int const out_fd, const char * const string, const char mask_character);
 tty_get_result_t tty_get(int const in_fd, unsigned int const maximum_seconds_to_wait, int * const character_read);
 void prepare_terminal(struct termios * const previous_terminal_settings);
 void restore_terminal(struct termios * const previous_terminal_settings);

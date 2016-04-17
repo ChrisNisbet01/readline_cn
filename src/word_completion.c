@@ -253,8 +253,8 @@ static void process_multiple_matches(private_completion_context_st * const priva
     completion_context->write_back_fp = NULL;
     if (private_completion_context->freeform_text != NULL && private_completion_context->freeform_text_len > 0)
     {
-        tty_puts(readline_ctx->out_fd, newline_str);
-        tty_puts(readline_ctx->out_fd, private_completion_context->freeform_text);
+        tty_puts(readline_ctx->out_fd, newline_str, '\0');
+        tty_puts(readline_ctx->out_fd, private_completion_context->freeform_text, '\0');
         need_to_redisplay_line = true;
     }
 
@@ -292,7 +292,7 @@ static void process_multiple_matches(private_completion_context_st * const priva
     }
     if (need_to_redisplay_line)
     {
-        tty_puts(line_ctx->terminal_fd, newline_str);
+        tty_puts(line_ctx->terminal_fd, newline_str, '\0');
         redisplay_line(line_ctx, readline_ctx->prompt);
     }
 }

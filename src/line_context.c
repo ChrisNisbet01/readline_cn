@@ -11,7 +11,9 @@
 /* write a char at the current cursor position. */
 static void terminal_write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode)
 {
-    tty_put(line_ctx->terminal_fd, ch);
+    char const char_to_write = line_ctx->mask_character != '\0' ? line_ctx->mask_character : ch;
+
+    tty_put(line_ctx->terminal_fd, char_to_write);
     /* if in insert mode, any chars after the one just pushed in 
      * will need to be written out.
      */
@@ -21,7 +23,7 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
 
         if (trailing_length > 0)
         {
-            tty_puts(line_ctx->terminal_fd, &line_ctx->buffer[line_ctx->cursor_index]);
+            tty_puts(line_ctx->terminal_fd, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
             /* Move the cursor back to where it was before we output the 
              * trailing chars. 
              */
@@ -99,10 +101,11 @@ static void delete_line_from_cursor_to_end(line_context_st * const line_ctx)
     line_ctx->buffer[line_ctx->line_length] = '\0';
 }
 
-bool line_buffer_init(line_context_st * const line_context,
+bool line_context_init(line_context_st * const line_context,
                       size_t const initial_size, 
                       size_t const size_increment,
-                      int const terminal_fd)
+                      int const terminal_fd,
+                      int const mask_character)
 {
     bool init_ok;
 
@@ -122,6 +125,7 @@ bool line_buffer_init(line_context_st * const line_context,
     line_context->buffer[0] = '\0';
 
     line_context->terminal_fd = terminal_fd;
+    line_context->mask_character = mask_character;
 
     init_ok = true;
 
@@ -129,7 +133,7 @@ done:
     return init_ok;
 }
 
-void line_buffer_teardown(line_context_st * const line_context)
+void line_context_teardown(line_context_st * const line_context)
 {
     /* free any old line_buffer */
     free(line_context->buffer);
@@ -183,7 +187,7 @@ void delete_char_to_the_left(line_context_st * const line_ctx)
         line_ctx->line_length--;
         line_ctx->buffer[line_ctx->line_length] = '\0';
         move_physical_cursor_left(line_ctx->terminal_fd, 1);
-        tty_puts(line_ctx->terminal_fd, &line_ctx->buffer[line_ctx->cursor_index]);
+        tty_puts(line_ctx->terminal_fd, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
         /* Remove the remaining char from the end of the line by 
          * replacing it with a space. 
          */
@@ -203,7 +207,7 @@ void delete_char_to_the_right(line_context_st * const line_ctx, bool const updat
         line_ctx->buffer[line_ctx->line_length] = '\0';
         if (update_display)
         {
-            tty_puts(line_ctx->terminal_fd, &line_ctx->buffer[line_ctx->cursor_index]);
+            tty_puts(line_ctx->terminal_fd, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
             /* Remove the remaining char from the end of the line by 
              * replacing it with a space. 
              */
@@ -243,7 +247,7 @@ void write_string(line_context_st * const line_ctx, char const * const string, b
 
 void print_current_edit_line(line_context_st * const line_ctx)
 {
-    tty_puts(line_ctx->terminal_fd, line_ctx->buffer);
+    tty_puts(line_ctx->terminal_fd, line_ctx->buffer, line_ctx->mask_character);
     line_ctx->cursor_index = strlen(line_ctx->buffer);
 }
 
@@ -251,7 +255,7 @@ void redisplay_line(line_context_st * const line_ctx, char const * const prompt)
 {
     size_t const original_cursor_index = line_ctx->cursor_index;
 
-    tty_puts(line_ctx->terminal_fd, prompt);
+    tty_puts(line_ctx->terminal_fd, prompt, '\0');
     print_current_edit_line(line_ctx);
     if (line_ctx->cursor_index > original_cursor_index)
     {

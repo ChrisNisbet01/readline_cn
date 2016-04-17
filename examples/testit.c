@@ -70,13 +70,33 @@ static void free_args(size_t argc, char const * * const argv)
     }
 }
 
+static bool get_password(readline_st * const readline_ctx)
+{
+    char * line = NULL;
+    char const previous_mask_control_character = readline_context_mask_character_control(readline_ctx, '*'); 
+    readline_result_t const result = readline(readline_ctx, 60, "Password> ", &line);
+    bool got_password;
+
+    if (result == readline_result_success)
+    {
+        printf("Got password: '%s'\n", line);
+        got_password = true;
+    }
+    else
+    {
+        got_password = false; 
+    }
+    free(line);
+    readline_context_mask_character_control(readline_ctx, previous_mask_control_character);
+}
+
 int main(int argc, char * argv[]__attribute__((unused)))
 {
     char * prompt; 
     readline_st * readline_ctx;
     bool do_read_line;
 
-    prompt = "prompt> ";
+    prompt = "Prompt> ";
 
     readline_ctx = readline_context_create(NULL, 
                                            test_completion_callback, 
@@ -88,13 +108,13 @@ int main(int argc, char * argv[]__attribute__((unused)))
         fprintf(stderr, "Unable to create readline context\n");
         goto done;
     }
+    get_password(readline_ctx);
 
     do
     {
-        char * line = NULL;
         size_t argc; 
         char const * * argv = NULL;
-        //readline_result_t const result = readline(readline_ctx, 60, prompt, &line);
+
         readline_result_t const result = readline_args(readline_ctx, 60, prompt, &argc, &argv);
 
         switch (result)
@@ -108,7 +128,7 @@ int main(int argc, char * argv[]__attribute__((unused)))
                     printf("Got arg %d: '%s'\n", index, argv[index]);
                 }
                 do_read_line = true;
-                    break;
+                break;
             }
             case readline_result_ctrl_c:
                 do_read_line = false;
@@ -127,7 +147,6 @@ int main(int argc, char * argv[]__attribute__((unused)))
                 printf("Got error\n");
                 break;
         }
-        free(line);
         free_args(argc, argv);
     }
     while (do_read_line);

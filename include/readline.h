@@ -54,7 +54,7 @@ readline_st * readline_context_create(void * const user_completion_context,
                                       int output_fd,
                                       size_t const history_size);
 bool readline_context_history_control(readline_st * const readline_ctx, bool const enable);
-
+char readline_context_mask_character_control(readline_st * const readline_ctx, char const mask_character);
 
 void readline_context_destroy(readline_st * const readline_ctx);
 
