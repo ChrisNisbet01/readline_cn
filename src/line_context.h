@@ -29,8 +29,6 @@ void delete_char_to_the_right(line_context_st * const line_ctx, bool const updat
 void delete_char(line_context_st * const line_ctx, bool update_display);
 void write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode, bool const update_terminal);
 void write_string(line_context_st * const line_ctx, char const * const string, bool insert_mode, bool const update_terminal);
-void print_current_edit_line(line_context_st * const line_ctx);
-void redisplay_line(line_context_st * const line_ctx, char const * const prompt);
 void complete_word(line_context_st * const line_ctx, char const * const completion, bool const update_terminal);
 void replace_line(line_context_st * const line_ctx, char const * const replacement);
 

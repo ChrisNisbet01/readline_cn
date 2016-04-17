@@ -237,6 +237,27 @@ static void process_unique_match(private_completion_context_st * const private_c
     }
 }
 
+static void print_current_edit_line(line_context_st * const line_ctx)
+{
+    tty_puts(line_ctx->terminal_fd, line_ctx->buffer, '\0');
+    line_ctx->cursor_index = strlen(line_ctx->buffer);
+}
+
+static void redisplay_line(line_context_st * const line_ctx, char const * const prompt)
+{
+    size_t const original_cursor_index = line_ctx->cursor_index;
+
+    tty_puts(line_ctx->terminal_fd, prompt, '\0');
+    print_current_edit_line(line_ctx);
+    /* Move the cursor back to where it was before we redispaled 
+     * the line. 
+     */
+    if (line_ctx->cursor_index > original_cursor_index)
+    {
+        move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index - original_cursor_index);
+    }
+}
+
 static void process_multiple_matches(private_completion_context_st * const private_completion_context,
                                      readline_st * const readline_ctx)
 {

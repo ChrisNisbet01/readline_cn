@@ -245,24 +245,6 @@ void write_string(line_context_st * const line_ctx, char const * const string, b
     }
 }
 
-void print_current_edit_line(line_context_st * const line_ctx)
-{
-    tty_puts(line_ctx->terminal_fd, line_ctx->buffer, line_ctx->mask_character);
-    line_ctx->cursor_index = strlen(line_ctx->buffer);
-}
-
-void redisplay_line(line_context_st * const line_ctx, char const * const prompt)
-{
-    size_t const original_cursor_index = line_ctx->cursor_index;
-
-    tty_puts(line_ctx->terminal_fd, prompt, '\0');
-    print_current_edit_line(line_ctx);
-    if (line_ctx->cursor_index > original_cursor_index)
-    {
-        move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index - original_cursor_index);
-    }
-}
-
 void complete_word(line_context_st * const line_ctx, char const * const completion, bool const update_terminal)
 {
     /* Remove any chars at the end of the word, then write the 
