@@ -20,6 +20,7 @@ int split_path(char const * const path, char const * * const dir_part, char cons
     char * fpart = NULL;
     char * last_slash;
     bool path_is_split;
+    size_t start_of_fpart;
 
     last_slash = strrchr(path, '/');
     if (last_slash == NULL)
@@ -35,7 +36,7 @@ int split_path(char const * const path, char const * * const dir_part, char cons
             path_is_split = false;
             goto done;
         }
-        *completion_start_index = 0;
+        start_of_fpart = 0;
     }
     else
     {
@@ -55,7 +56,7 @@ int split_path(char const * const path, char const * * const dir_part, char cons
             path_is_split = false;
             goto done;
         }
-        *completion_start_index = char_after_last_slash - path;
+        start_of_fpart = char_after_last_slash - path; 
     }
     path_is_split = true;
 
@@ -64,6 +65,10 @@ done:
     {
         *dir_part = dpart;
         *file_part = fpart;
+        if (completion_start_index != NULL)
+        {
+            *completion_start_index = start_of_fpart;
+        }
     }
     else
     {
