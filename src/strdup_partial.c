@@ -15,6 +15,11 @@ char * strdup_partial(char const * const source, size_t const start, size_t cons
     }
 
     bytes_to_copy = end - start;
+    if (source == NULL && bytes_to_copy > 0)
+    {
+        string = NULL;
+        goto done;
+    }
 
     if (source != NULL)
     {
