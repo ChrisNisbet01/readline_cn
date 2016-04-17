@@ -2,3 +2,5 @@
 /tests
 *.trs
 .deps/*
+/test_history
+/test_history_entries
