@@ -55,12 +55,23 @@ history_entry_st * history_get_newest_entry_from_list(history_entries_st const *
 
 history_entry_st * history_get_older_entry_from_list(history_entries_st const * const entries, history_entry_st const * const entry)
 {
-    /* Including 'entries' in the prototype to provice a consistent 
+    /* Including 'entries' in the prototype to provide a consistent 
      * API, where the list head is always passed to functions that 
      * may get/set the list in some way. 
     */
+    history_entry_st * older_entry;
+
     (void)entries;
-    return TAILQ_PREV(entry, history_entries_list_st, entry);
+    if (entry == NULL)
+    {
+        older_entry = NULL;
+    }
+    else
+    {
+        older_entry = TAILQ_PREV(entry, history_entries_list_st, entry);
+    }
+
+    return older_entry;
 }
 
 history_entry_st * history_get_newer_entry_from_list(history_entries_st const * const entries, history_entry_st const * const entry)
@@ -70,7 +81,19 @@ history_entry_st * history_get_newer_entry_from_list(history_entries_st const * 
      * may get/set the list in some way. 
     */
     (void)entries;
-    return TAILQ_NEXT(entry, entry);
+    history_entry_st * newer_entry;
+
+    (void)entries;
+    if (entry == NULL)
+    {
+        newer_entry = NULL;
+    }
+    else
+    {
+        newer_entry = TAILQ_NEXT(entry, entry); 
+    }
+
+    return newer_entry;
 }
 
 void history_remove_entry_from_list(history_entries_st * const entries, history_entry_st * const entry)
@@ -104,12 +127,15 @@ history_entry_st * history_entry_alloc(char const * const value)
         goto done;
     }
 
-    entry->value = strdup(value);
-    if (entry->value == NULL)
+    if (value != NULL)
     {
-        history_entry_free(entry);
-        entry = NULL;
-        goto done;
+        entry->value = strdup(value);
+        if (entry->value == NULL)
+        {
+            history_entry_free(entry);
+            entry = NULL;
+            goto done;
+        }
     }
 
 done:
