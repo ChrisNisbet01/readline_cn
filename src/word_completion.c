@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 /**
  * container_of - cast a member of a structure out to the containing structure
@@ -155,11 +156,12 @@ static void private_completion_context_teardown(private_completion_context_st * 
 {
     completion_context_st * const completion_context = &private_completion_context->public_context;
 
-    if (completion_context->write_back_fp != NULL)
+    if (completion_context->write_back_fd != -1)
     {
-        fclose(completion_context->write_back_fp);
-        completion_context->write_back_fp = NULL;
+        close(completion_context->write_back_fd);
+        completion_context->write_back_fd = -1;
     }
+    
     free(private_completion_context->freeform_text);
     private_completion_context->freeform_text = NULL;
     args_free(private_completion_context->possible_words);
@@ -188,13 +190,7 @@ static bool private_completion_context_init(private_completion_context_st * cons
         goto done;
     }
 
-    completion_context->write_back_fp = open_memstream(&private_completion_context->freeform_text,
-                                                       &private_completion_context->freeform_text_len);
-    if (completion_context->write_back_fp == NULL)
-    {
-        init_ok = false;
-        goto done;
-    }
+    completion_context->write_back_fd = dup(line_ctx->terminal_fd);
 
     completion_context->possible_word_add_fn = possible_word_add;
     completion_context->start_index_set_fn = set_completion_start;
@@ -262,22 +258,17 @@ static void process_multiple_matches(private_completion_context_st * const priva
                                      readline_st * const readline_ctx)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;
-    completion_context_st * const completion_context = &private_completion_context->public_context;
     bool need_to_redisplay_line;
 
-    /* The line will need to be redisplayed if any possible 
-     * options or free text are printed onto the display. 
+    /* The line will need to be redisplayed if any possible options 
+     * are printed onto the display. It should also be redisplayed 
+     * if the user chose to write to the write_back_fd file 
+     * descriptor, but we're relying on him to inform us that this 
+     * has been done. I'm not sure how I can figure out if he's 
+     * written to the descriptor without the user specifically 
+     * letting us know. 
      */
     need_to_redisplay_line = false;
-
-    fclose(completion_context->write_back_fp);
-    completion_context->write_back_fp = NULL;
-    if (private_completion_context->freeform_text != NULL && private_completion_context->freeform_text_len > 0)
-    {
-        tty_puts(readline_ctx->out_fd, newline_str, '\0');
-        tty_puts(readline_ctx->out_fd, private_completion_context->freeform_text, '\0');
-        need_to_redisplay_line = true;
-    }
 
     if (private_completion_context->possible_words->argc > 0)
     {

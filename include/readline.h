@@ -45,7 +45,7 @@ struct completion_context_st
     tokens_get_num_tokens_fn tokens_get_num_tokens_fn;
     tokens_get_token_at_index_fn tokens_get_token_at_index_fn;
 
-    FILE * write_back_fp;
+    int write_back_fd;
 };
 
 readline_st * readline_context_create(void * const user_completion_context,

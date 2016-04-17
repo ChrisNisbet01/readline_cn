@@ -25,6 +25,7 @@ static int do_command_name_completion(completion_context_st * const completion_c
     char const * current_token = completion_context->tokens_get_current_token_fn(completion_context);
     size_t const current_token_len = strlen(current_token);
 
+    dprintf(completion_context->write_back_fd, "\nsome text from callback\n");
     for (index = 0; index < NB_ARG0_ITEMS; index++)
     {
         if (strncmp(current_token, arg0_items[index], current_token_len) == 0)
