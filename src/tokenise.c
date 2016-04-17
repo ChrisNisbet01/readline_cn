@@ -63,7 +63,7 @@ done:
     return populated_ok;
 }
 
-static bool check_cursor_index(size_t const cursor_index, size_t const start_index, size_t const end_index)
+static bool check_if_cursor_index_within_word(size_t const cursor_index, size_t const start_index, size_t const end_index)
 {
     bool cursor_is_within_word;
 
@@ -85,19 +85,16 @@ static bool create_cursor_token_if_cursor_index_fits_in_token(char const * const
 {
     bool cursor_falls_within_token;
 
-    if (check_cursor_index(cursor_index,
-                           tokens->token_array[tokens->count].start_index,
-                           tokens->token_array[tokens->count].end_index))
+    cursor_falls_within_token = check_if_cursor_index_within_word(cursor_index,
+                                                                  tokens->token_array[tokens->count].start_index,
+                                                                  tokens->token_array[tokens->count].end_index);
+
+    if (cursor_falls_within_token)
     {
         tokens->current_token_index = tokens->count;
         tokens->current_token = strdup_partial(line,
                                                tokens->token_array[tokens->count].start_index,
                                                cursor_index);
-        cursor_falls_within_token = true;
-    }
-    else
-    {
-        cursor_falls_within_token = false;
     }
 
     return cursor_falls_within_token;
