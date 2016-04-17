@@ -466,11 +466,14 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
     {
         case readline_status_done:
         {
-            if (readline_ctx->is_a_terminal)
+            if (readline_ctx->history_enabled)
             {
-                history_st * history = readline_ctx->history;
+                if (readline_ctx->is_a_terminal)
+                {
+                    history_st * history = readline_ctx->history;
 
-                history_add(history, line_ctx->buffer);
+                    history_add(history, line_ctx->buffer);
+                }
             }
             *line = line_ctx->buffer;
             line_ctx->buffer = NULL;

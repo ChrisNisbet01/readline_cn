@@ -18,8 +18,11 @@ struct readline_st
     char const * prompt;
 
     line_context_st line_context;
+
     char const * saved_line;
+    bool history_enabled;
     history_st * history;
+
     void * user_completion_context;    /* user specific context passed back to the user when performing auto-complete */
     bool insert_mode;
     completion_callback_fn completion_callback;

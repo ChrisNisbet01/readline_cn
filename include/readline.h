@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 typedef struct readline_st readline_st;
 
@@ -52,6 +53,9 @@ readline_st * readline_context_create(void * const user_completion_context,
                                       int input_fd,
                                       int output_fd,
                                       size_t const history_size);
+bool readline_context_history_control(readline_st * const readline_ctx, bool const enable);
+
+
 void readline_context_destroy(readline_st * const readline_ctx);
 
 readline_result_t readline(readline_st * const readline_ctx,

@@ -83,6 +83,11 @@ int main(int argc, char * argv[]__attribute__((unused)))
                                            STDIN_FILENO, 
                                            STDOUT_FILENO, 
                                            HISTORY_SIZE);
+    if (readline_ctx == NULL)
+    {
+        fprintf(stderr, "Unable to create readline context\n");
+        goto done;
+    }
 
     do
     {
@@ -129,6 +134,7 @@ int main(int argc, char * argv[]__attribute__((unused)))
 
     readline_context_destroy(readline_ctx);
 
+done:
     return 0;
 }
 
