@@ -13,6 +13,7 @@ TEST_GROUP(strdup_partial)
 
     void setup()
     {
+        result = NULL;
     }
 
     void teardown()
