@@ -456,6 +456,7 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
     readline_status_t readline_status;
     readline_result_t readline_result;
     line_context_st * const line_ctx = &readline_ctx->line_context;
+    bool should_return_line = false;
 
     readline_ctx->maximum_seconds_to_wait_for_char = timeout_seconds;
     readline_ctx->prompt = prompt; 
@@ -472,18 +473,7 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
     {
         case readline_status_done:
         {
-            bool const should_add_to_history = readline_ctx->history_enabled &&
-                                               readline_ctx->is_a_terminal &&
-                                               readline_ctx->mask_character == '\0';
-
-            if (should_add_to_history)
-            {
-                history_st * history = readline_ctx->history;
-
-                history_add(history, line_ctx->buffer);
-            }
-            *line = line_ctx->buffer;
-            line_ctx->buffer = NULL;
+            should_return_line = true;
             readline_result = readline_result_success;
             break;
         }
@@ -493,6 +483,7 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
             readline_result = readline_result_error;
             break;
         case readline_status_eof:
+            should_return_line = true;
             readline_result = readline_result_eof;
             break;
         case readline_status_ctrl_c:
@@ -503,14 +494,29 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
             break;
     }
 
-    readline_cleanup(readline_ctx);
+    if (should_return_line)
+    {
+        bool const should_add_to_history = readline_ctx->history_enabled &&
+            readline_ctx->is_a_terminal &&
+            readline_ctx->mask_character == '\0';
 
-done:
+        if (should_add_to_history)
+        {
+            history_st * history = readline_ctx->history;
 
-    if (readline_result != readline_result_success)
+            history_add(history, line_ctx->buffer);
+        }
+        *line = line_ctx->buffer;
+        line_ctx->buffer = NULL;
+    }
+    else
     {
         *line = NULL;
     }
+
+    readline_cleanup(readline_ctx);
+
+done:
 
     return readline_result;
 }

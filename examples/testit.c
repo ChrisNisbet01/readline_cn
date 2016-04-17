@@ -25,7 +25,7 @@ static int do_command_name_completion(completion_context_st * const completion_c
     char const * current_token = completion_context->tokens_get_current_token_fn(completion_context);
     size_t const current_token_len = strlen(current_token);
 
-    dprintf(completion_context->write_back_fd, "\nsome text from callback\n");
+    dprintf(completion_context->write_back_fd, "\n  some text from callback\n");
     for (index = 0; index < NB_ARG0_ITEMS; index++)
     {
         if (strncmp(current_token, arg0_items[index], current_token_len) == 0)
@@ -78,7 +78,7 @@ static bool get_password(readline_st * const readline_ctx)
     readline_result_t const result = readline(readline_ctx, 60, "Password> ", &line);
     bool got_password;
 
-    if (result == readline_result_success)
+    if (result == readline_result_success || result == readline_result_eof)
     {
         printf("Got password: '%s'\n", line);
         got_password = true;
@@ -140,9 +140,17 @@ int main(int argc, char * argv[]__attribute__((unused)))
                 printf("Timed out\n");
                 break;
             case readline_result_eof:
-                do_read_line = false;
+            {
                 printf("Got EOF\n");
+                int index;
+
+                for (index = 0; index < argc; index++)
+                {
+                    printf("Got arg %d: '%s'\n", index, argv[index]);
+                }
+                do_read_line = false;
                 break;
+            }
             case readline_result_error:
                 do_read_line = false;
                 printf("Got error\n");
