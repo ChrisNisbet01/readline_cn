@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define INCREMENT	1
 
@@ -56,20 +57,35 @@ done:
     return args;
 }
 
+static bool args_increase_size(args_st * const args)
+{
+    bool size_increased;
+
+    args->argv = realloc(args->argv, (args->slots_allocated + INCREMENT) * sizeof( *args->argv));
+    if (args->argv == NULL)
+    {
+        args->argc = 0;
+        size_increased = false;
+        goto done;
+    }
+    args->slots_allocated += INCREMENT;
+    size_increased = true;
+
+done:
+    return size_increased;
+}
+
 int args_add_arg(args_st * const args, char const * const arg)
 {
     int arg_added;
 
     if (args->argc == args->slots_allocated)
     {
-        args->argv = realloc(args->argv, (args->slots_allocated + INCREMENT) * sizeof(*args->argv));
-        if (args->argv == NULL)
+        if (!args_increase_size(args))
         {
-            args->argc = 0;
             arg_added = 0;
             goto done;
         }
-        args->slots_allocated += INCREMENT;
     }
     if (arg != NULL)
     {

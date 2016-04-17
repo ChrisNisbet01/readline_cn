@@ -4,3 +4,4 @@
 .deps/*
 /test_history
 /test_history_entries
+/test_common_prefix_length
