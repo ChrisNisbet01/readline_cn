@@ -312,11 +312,6 @@ static void private_completion_context_process_results(private_completion_contex
     line_context_st * const line_ctx = &readline_ctx->line_context;
     bool need_to_redisplay_line;
 
-    if (characters_were_printed)
-    {
-        need_to_redisplay_line = true;
-    }
-
     if (private_completion_context->unique_match != NULL)
     {
         process_unique_match(private_completion_context, line_ctx);
@@ -327,12 +322,16 @@ static void private_completion_context_process_results(private_completion_contex
         need_to_redisplay_line = process_multiple_matches(private_completion_context, readline_ctx);
     }
 
+    if (characters_were_printed)
+    {
+        need_to_redisplay_line = true;
+    }
+
     if (need_to_redisplay_line)
     {
         tty_puts(line_ctx->terminal_fd, newline_str, '\0');
         redisplay_line(line_ctx, readline_ctx->prompt);
     }
-
 }
 
 void do_word_completion(readline_st * const readline_ctx)

@@ -76,7 +76,7 @@ static void handle_delete(readline_st * const readline_ctx)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;
 
-    delete_char(line_ctx, true);
+    delete_char_to_the_right(line_ctx, true);
 }
 
 static void save_current_line(line_context_st * const line_ctx, char const * * const destination)

@@ -25,18 +25,23 @@ static int do_command_name_completion(completion_context_st * const completion_c
     size_t index;
     char const * current_token = completion_context->tokens_get_current_token_fn(completion_context);
     size_t const current_token_len = strlen(current_token);
+    size_t num_possible_words;
 
-    dprintf(completion_context->write_back_fd, "\n  some text from callback\n");
-    characters_printed = 1;
-    for (index = 0; index < NB_ARG0_ITEMS; index++)
+    for (index = 0, num_possible_words = 0; index < NB_ARG0_ITEMS; index++)
     {
         if (strncmp(current_token, arg0_items[index], current_token_len) == 0)
         {
             completion_context->possible_word_add_fn(completion_context, arg0_items[index]);
+            num_possible_words++;
         }
     }
+    if (num_possible_words != 1)
+    {
+        dprintf(completion_context->write_back_fd, "\nsome text from callback\n");
+        characters_printed = 1;
+    }
 
-    return 0;
+    return characters_printed;
 }
 
 static int test_completion_callback(completion_context_st * const completion_context,
