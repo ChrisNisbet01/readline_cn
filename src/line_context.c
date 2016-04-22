@@ -173,38 +173,16 @@ void replace_line(line_context_st * const line_ctx, char const * const replaceme
     write_string(line_ctx, replacement, true, true);
 }
 
-void delete_char_to_the_left(line_context_st * const line_ctx)
-{
-    if (line_ctx->cursor_index > 0)
-    {
-        size_t const trailing_chars = line_ctx->line_length - line_ctx->cursor_index;
-
-        line_ctx->cursor_index--;
-        if (trailing_chars > 0)
-        {
-            memmove(&line_ctx->buffer[line_ctx->cursor_index], &line_ctx->buffer[line_ctx->cursor_index + 1], trailing_chars);
-        }
-        line_ctx->line_length--;
-        line_ctx->buffer[line_ctx->line_length] = '\0';
-        move_physical_cursor_left(line_ctx->terminal_fd, 1);
-        tty_puts(line_ctx->terminal_fd, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
-        /* Remove the remaining char from the end of the line by 
-         * replacing it with a space. 
-         */
-        tty_put(line_ctx->terminal_fd, ' ');
-        move_physical_cursor_left(line_ctx->terminal_fd, trailing_chars + 1);
-    }
-}
-
 void delete_char_to_the_right(line_context_st * const line_ctx, bool const update_display)
 {
     if (line_ctx->cursor_index < line_ctx->line_length)
     {
         size_t const trailing_chars = line_ctx->line_length - line_ctx->cursor_index;
 
-        memmove(&line_ctx->buffer[line_ctx->cursor_index], &line_ctx->buffer[line_ctx->cursor_index + 1], trailing_chars);
         line_ctx->line_length--;
+        memmove(&line_ctx->buffer[line_ctx->cursor_index], &line_ctx->buffer[line_ctx->cursor_index + 1], trailing_chars);
         line_ctx->buffer[line_ctx->line_length] = '\0';
+
         if (update_display)
         {
             tty_puts(line_ctx->terminal_fd, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
@@ -214,6 +192,20 @@ void delete_char_to_the_right(line_context_st * const line_ctx, bool const updat
             tty_put(line_ctx->terminal_fd, ' ');
             move_physical_cursor_left(line_ctx->terminal_fd, trailing_chars);
         }
+    }
+}
+
+void delete_char_to_the_left(line_context_st * const line_ctx)
+{
+    /* If we move the cursor to the left one position, the 
+     * operation becomes just like deleting the character to the 
+     * right. 
+     */
+    if (line_ctx->cursor_index > 0)
+    {
+        line_ctx->cursor_index--;
+        move_physical_cursor_left(line_ctx->terminal_fd, 1);
+        delete_char_to_the_right(line_ctx, true);
     }
 }
 
