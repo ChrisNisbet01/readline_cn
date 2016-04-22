@@ -21,11 +21,13 @@ static char * arg0_items[] =
 
 static int do_command_name_completion(completion_context_st * const completion_context)
 {
+    int characters_printed = 0;
     size_t index;
     char const * current_token = completion_context->tokens_get_current_token_fn(completion_context);
     size_t const current_token_len = strlen(current_token);
 
     dprintf(completion_context->write_back_fd, "\n  some text from callback\n");
+    characters_printed = 1;
     for (index = 0; index < NB_ARG0_ITEMS; index++)
     {
         if (strncmp(current_token, arg0_items[index], current_token_len) == 0)
@@ -47,7 +49,7 @@ static int test_completion_callback(completion_context_st * const completion_con
 
     if (current_token_index == 0)
     {
-        do_command_name_completion(completion_context);
+        result = do_command_name_completion(completion_context);
     }
     else
     {

@@ -245,7 +245,7 @@ static void redisplay_line(line_context_st * const line_ctx, char const * const 
 
     tty_puts(line_ctx->terminal_fd, prompt, '\0');
     print_current_edit_line(line_ctx);
-    /* Move the cursor back to where it was before we redispaled 
+    /* Move the cursor back to where it was before we redisplayed 
      * the line. 
      */
     if (line_ctx->cursor_index > original_cursor_index)
@@ -254,7 +254,7 @@ static void redisplay_line(line_context_st * const line_ctx, char const * const 
     }
 }
 
-static void process_multiple_matches(private_completion_context_st * const private_completion_context,
+static bool process_multiple_matches(private_completion_context_st * const private_completion_context,
                                      readline_st * const readline_ctx)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;
@@ -302,24 +302,35 @@ static void process_multiple_matches(private_completion_context_st * const priva
             free((void *)longest_completion_suffix);
         }
     }
+    return need_to_redisplay_line;
+}
+
+static void private_completion_context_process_results(private_completion_context_st * const private_completion_context,
+                                                       readline_st * const readline_ctx,
+                                                       bool const characters_were_printed)
+{
+    line_context_st * const line_ctx = &readline_ctx->line_context;
+    bool need_to_redisplay_line;
+
+    if (characters_were_printed)
+    {
+        need_to_redisplay_line = true;
+    }
+
+    if (private_completion_context->unique_match != NULL)
+    {
+        process_unique_match(private_completion_context, line_ctx);
+        need_to_redisplay_line = false;
+    }
+    else
+    {
+        need_to_redisplay_line = process_multiple_matches(private_completion_context, readline_ctx);
+    }
+
     if (need_to_redisplay_line)
     {
         tty_puts(line_ctx->terminal_fd, newline_str, '\0');
         redisplay_line(line_ctx, readline_ctx->prompt);
-    }
-}
-
-static void private_completion_context_process_results(private_completion_context_st * const private_completion_context,
-                                                       readline_st * const readline_ctx)
-{
-
-    if (private_completion_context->unique_match != NULL)
-    {
-        process_unique_match(private_completion_context, &readline_ctx->line_context);
-    }
-    else
-    {
-        process_multiple_matches(private_completion_context, readline_ctx);
     }
 
 }
@@ -328,6 +339,8 @@ void do_word_completion(readline_st * const readline_ctx)
 {
     if (readline_ctx->completion_callback != NULL)
     {
+        int characters_were_printed;
+
         line_context_st * const line_ctx = &readline_ctx->line_context;
         private_completion_context_st private_completion_context;
 
@@ -336,10 +349,10 @@ void do_word_completion(readline_st * const readline_ctx)
             goto done;
         }
 
-        readline_ctx->completion_callback(&private_completion_context.public_context,
+        characters_were_printed = readline_ctx->completion_callback(&private_completion_context.public_context,
                                           readline_ctx->user_completion_context);
 
-        private_completion_context_process_results(&private_completion_context, readline_ctx);
+        private_completion_context_process_results(&private_completion_context, readline_ctx, characters_were_printed > 0);
 
         private_completion_context_teardown(&private_completion_context);
     }
