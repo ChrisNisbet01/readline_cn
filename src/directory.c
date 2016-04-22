@@ -1,4 +1,5 @@
 #include "directory.h"
+#include "directory_test.h"
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -10,7 +11,7 @@ static bool full_path_is_a_directory(char const * const full_path)
     bool is_directory;
     struct stat file_stat;
 
-    is_directory = stat(full_path, &file_stat) >= 0 && S_ISDIR(file_stat.st_mode);
+    is_directory = STAT(full_path, &file_stat) == 0 && S_ISDIR(file_stat.st_mode);
 
     return is_directory;
 }

@@ -1,9 +1,11 @@
 AUTOMAKE_OPTIONS = foreign subdir-objects
 ACLOCAL_AMFLAGS = -I m4
 
-test_cxxflags = -D_GNU_SOURCE -Wall -Werror -Wno-unused-result -I..
+test_cxxflags = -D_GNU_SOURCE -D_UNIT_TEST -Wall -Werror -Wno-unused-result -I..
+test_cflags = -D_GNU_SOURCE -D_UNIT_TEST
 
 AM_CXXFLAGS := $(AM_CXXFLAGS) $(test_cxxflags)
+AM_CFLAGS := $(AM_CFLAGS) $(test_cflags)
 AM_LDFLAGS = -lCppUTest -lCppUTestExt
 
 check_PROGRAMS = \
@@ -12,7 +14,8 @@ check_PROGRAMS = \
 			test_common_prefix_length \
 			test_strdup_partial \
 			test_split_path \
-			test_tokenise
+			test_tokenise \
+			test_directory
 
 test_history_entries_SOURCES = AllTests.cpp test_history_entries.cpp ../history_entries.c
 
@@ -25,6 +28,11 @@ test_strdup_partial_SOURCES = AllTests.cpp test_strdup_partial.cpp ../strdup_par
 test_split_path_SOURCES = AllTests.cpp test_split_path.cpp ../split_path.c ../strdup_partial.c
 
 test_tokenise_SOURCES = AllTests.cpp test_tokenise.cpp ../tokenise.c ../strdup_partial.c
+
+test_directory_SOURCES = AllTests.cpp test_directory.cpp ../directory.c
+#For some reason I need to specify these flags here to get the UNIT_TEST define to work.
+test_directory_CXXFLAGS := $(AM_CXXFLAGS) $(test_cxxflags)
+test_directory_CFLAGS := $(AM_CFLAGS) $(test_cflags)
 
 TESTS = $(check_PROGRAMS)
 
