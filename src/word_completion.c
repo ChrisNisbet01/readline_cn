@@ -360,3 +360,29 @@ done:
     return;
 }
 
+void do_help(readline_st * const readline_ctx)
+{
+    if (readline_ctx->help_callback != NULL)
+    {
+        int characters_were_printed;
+
+        line_context_st * const line_ctx = &readline_ctx->line_context;
+        private_completion_context_st private_completion_context;
+
+        if (!private_completion_context_init(&private_completion_context, line_ctx))
+        {
+            goto done;
+        }
+
+        characters_were_printed = readline_ctx->help_callback(&private_completion_context.public_context,
+                                                                    readline_ctx->user_completion_context);
+
+        private_completion_context_process_results(&private_completion_context, readline_ctx, characters_were_printed > 0);
+
+        private_completion_context_teardown(&private_completion_context);
+    }
+
+done:
+    return;
+}
+

@@ -50,7 +50,7 @@ static int test_completion_callback(completion_context_st * const completion_con
     size_t index;
     (void)user_context;
     int result = 0;
-    size_t current_token_index = completion_context->tokens_get_current_token_index_fn(completion_context); 
+    size_t const current_token_index = completion_context->tokens_get_current_token_index_fn(completion_context); 
 
     if (current_token_index == 0)
     {
@@ -60,6 +60,18 @@ static int test_completion_callback(completion_context_st * const completion_con
     {
         result = do_filename_completion(completion_context, user_context);
     }
+
+    return result;
+}
+
+static int test_help_callback(completion_context_st * const completion_context,
+                                    void * const user_context)
+{
+    (void)user_context;
+    int result = 1;
+    size_t const current_token_index = completion_context->tokens_get_current_token_index_fn(completion_context);
+
+    dprintf(completion_context->write_back_fd, "\nhere's some help and current token_index %u\n", current_token_index); 
 
     return result;
 }
@@ -107,8 +119,10 @@ int main(int argc, char * argv[]__attribute__((unused)))
     prompt = "Prompt> ";
 
     readline_ctx = readline_context_create(NULL, 
-                                           test_completion_callback, 
-                                           STDIN_FILENO, 
+                                           test_completion_callback,
+                                           test_help_callback,
+                                           '?',
+                                           STDIN_FILENO,
                                            STDOUT_FILENO, 
                                            HISTORY_SIZE);
     if (readline_ctx == NULL)

@@ -288,8 +288,14 @@ static readline_status_t handle_control_char(readline_st * const readline_ctx, i
 
 static void handle_regular_char(readline_st * const readline_ctx, int const ch, bool const update_terminal)
 {
-    line_context_st * const line_ctx = &readline_ctx->line_context;    
-    write_char(line_ctx, ch, readline_ctx->insert_mode, update_terminal);
+    if (readline_ctx->help_key != '\0' && ch == (int)readline_ctx->help_key)
+    {
+        do_help(readline_ctx);
+    }
+    else
+    {
+        write_char(&readline_ctx->line_context, ch, readline_ctx->insert_mode, update_terminal);
+    }
 }
 
 static readline_status_t get_new_input_from_terminal(readline_st * const readline_ctx)

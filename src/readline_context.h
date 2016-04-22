@@ -27,6 +27,8 @@ struct readline_st
     void * user_completion_context;    /* user specific context passed back to the user when performing auto-complete */
     bool insert_mode;
     completion_callback_fn completion_callback;
-}; 
+    help_callback_fn help_callback;
+    char help_key;
+};
 
 #endif /* __READLINE_CONTEXT_H__ */

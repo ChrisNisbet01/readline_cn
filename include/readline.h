@@ -27,6 +27,8 @@ typedef int (* completion_unique_match_set_fn)(completion_context_st * const com
                                                 char const * const unique_match);
 typedef int (* completion_callback_fn)(completion_context_st * const completion_context,
                                        void * const user_context);
+typedef int (* help_callback_fn)(completion_context_st * const completion_context,
+                                       void * const user_context); 
 
 typedef size_t (* tokens_get_current_token_index_fn)(completion_context_st * const completion_context);
 typedef char const * (* tokens_get_current_token_fn)(completion_context_st * const completion_context);
@@ -50,6 +52,8 @@ struct completion_context_st
 
 readline_st * readline_context_create(void * const user_completion_context,
                                       completion_callback_fn const completion_callback,
+                                      help_callback_fn const help_callback,
+                                      char const help_key,
                                       int input_fd,
                                       int output_fd,
                                       size_t const history_size);
