@@ -120,10 +120,7 @@ static void private_help_context_process_results(private_help_context_st * const
     line_context_st * const line_ctx = &readline_ctx->line_context;
     bool need_to_redisplay_line;
 
-    if (characters_were_printed)
-    {
-        need_to_redisplay_line = true;
-    }
+    need_to_redisplay_line = characters_were_printed;
 
     if (need_to_redisplay_line)
     {
