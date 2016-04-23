@@ -152,18 +152,18 @@ static void handle_down_arrow(readline_st * const readline_ctx)
     }
 }
 
-static readline_status_t handle_escaped_char(readline_st * const readline_ctx)
+static int read_char_from_input_descriptor(int const input_fd, unsigned int const maximum_seconds_to_wait, readline_status_t * const readline_status)
 {
-    readline_status_t status = readline_status_continue;
-    int escaped_char;
+    int ch;
+    readline_status_t status;
     tty_get_result_t tty_get_result;
 
-    tty_get_result = tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &escaped_char);
+    tty_get_result = tty_get(input_fd, maximum_seconds_to_wait, &ch);
     switch (tty_get_result)
     {
         case tty_get_result_eof:
             status = readline_status_eof;
-            goto done; 
+            goto done;
 
         case tty_get_result_timeout:
             status = readline_status_timed_out;
@@ -171,23 +171,36 @@ static readline_status_t handle_escaped_char(readline_st * const readline_ctx)
         case tty_get_result_ok:
             break;
     }
+    status = readline_status_continue;
+
+done:
+    *readline_status = status;
+    return ch;
+}
+
+static readline_status_t handle_escaped_char(readline_st * const readline_ctx)
+{
+    readline_status_t status;
+    int escaped_char;
+
+    escaped_char = read_char_from_input_descriptor(readline_ctx->in_fd,
+                                         readline_ctx->maximum_seconds_to_wait_for_char,
+                                         &status);
+    if (status != readline_status_continue)
+    {
+        goto done;
+    }
 
     if (escaped_char == '[' || escaped_char == 'O')
     {
         int escape_command_char;
 
-        tty_get_result = tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &escape_command_char);
-        switch (tty_get_result)
+        escape_command_char = read_char_from_input_descriptor(readline_ctx->in_fd,
+                                                       readline_ctx->maximum_seconds_to_wait_for_char,
+                                                       &status);
+        if (status != readline_status_continue)
         {
-            case tty_get_result_eof:
-                status = readline_status_eof;
-                goto done;
-
-            case tty_get_result_timeout:
-                status = readline_status_timed_out;
-                goto done;
-            case tty_get_result_ok:
-                break;
+            goto done;
         }
 
         switch (escape_command_char)
@@ -299,25 +312,18 @@ static void handle_regular_char(readline_st * const readline_ctx, int const ch, 
 
 static readline_status_t get_new_input_from_terminal(readline_st * const readline_ctx)
 {
-    int c;
+    int ch;
     readline_status_t status;
-    tty_get_result_t tty_get_result;
 
-    tty_get_result = tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &c);
-    switch (tty_get_result)
+    ch = read_char_from_input_descriptor(readline_ctx->in_fd,
+                                 readline_ctx->maximum_seconds_to_wait_for_char,
+                                 &status);
+    if (status != readline_status_continue)
     {
-        case tty_get_result_eof:
-            status = readline_status_eof;
-            goto done;
-
-        case tty_get_result_timeout:
-            status = readline_status_timed_out;
-            goto done;
-        case tty_get_result_ok:
-            break;
+        goto done;
     }
 
-    switch (c)
+    switch (ch)
     {
         case ESC:
             status = handle_escaped_char(readline_ctx);
@@ -327,13 +333,13 @@ static readline_status_t get_new_input_from_terminal(readline_st * const readlin
             status = readline_status_continue;
             break;
         default:
-            if (ISCTL(c))
+            if (ISCTL(ch))
             {
-                status = handle_control_char(readline_ctx, c);
+                status = handle_control_char(readline_ctx, ch);
             }
             else
             {
-                handle_regular_char(readline_ctx, c, true);
+                handle_regular_char(readline_ctx, ch, true);
                 status = readline_status_continue;
             }
             break;
@@ -345,30 +351,24 @@ done:
 
 static readline_status_t get_new_input_from_file(readline_st * const readline_ctx)
 {
-    int c;
+    int ch;
     readline_status_t status;
-    tty_get_result_t tty_get_result;
 
-    tty_get_result = tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &c);
-    switch (tty_get_result)
+    ch = read_char_from_input_descriptor(readline_ctx->in_fd,
+                                         readline_ctx->maximum_seconds_to_wait_for_char,
+                                         &status);
+    if (status != readline_status_continue)
     {
-        case tty_get_result_eof:
-            status = readline_status_eof;
-            goto done;
-        case tty_get_result_timeout:
-            status = readline_status_timed_out;
-            goto done;
-        case tty_get_result_ok:
-            break;
+        goto done;
     }
 
-    switch (c)
+    switch (ch)
     {
         case '\n':
             status = readline_status_done;
             break;
         default:
-            handle_regular_char(readline_ctx, c, false);
+            handle_regular_char(readline_ctx, ch, false);
             status = readline_status_continue;
             break;
     }
@@ -496,6 +496,10 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
             break;
         case readline_status_timed_out:
             readline_result = readline_result_timed_out;
+            break;
+        default:
+            /* Here just to prevent a compiler warning. */
+            readline_result = readline_result_error;
             break;
     }
 
