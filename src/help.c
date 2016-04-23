@@ -80,14 +80,16 @@ static void private_help_context_teardown(private_help_context_st * const privat
     private_help_context->tokens = NULL;
 }
 
-static bool private_help_context_init(private_help_context_st * const private_help_context, line_context_st * const line_ctx)
+static bool private_help_context_init(private_help_context_st * const private_help_context, 
+                                      line_context_st * const line_ctx,
+                                      char const * const field_separators)
 {
     help_context_st * const help_context = &private_help_context->public_context;
     bool init_ok;
 
     memset(private_help_context, 0, sizeof *private_help_context);
 
-    private_help_context->tokens = tokenise_line(line_ctx->buffer, 0, line_ctx->cursor_index, true);
+    private_help_context->tokens = tokenise_line(line_ctx->buffer, 0, line_ctx->cursor_index, true, field_separators);
     if (private_help_context->tokens == NULL)
     {
         init_ok = false;
@@ -138,7 +140,7 @@ void do_help(readline_st * const readline_ctx)
         line_context_st * const line_ctx = &readline_ctx->line_context;
         private_help_context_st private_help_context;
 
-        if (!private_help_context_init(&private_help_context, line_ctx))
+        if (!private_help_context_init(&private_help_context, line_ctx, readline_ctx->field_separators))
         {
             goto done;
         }

@@ -240,6 +240,13 @@ void tokens_free(tokens_st * const tokens)
     }
 }
 
+static bool char_is_field_separator(char const * const field_separators, char const ch)
+{
+    bool const is_a_field_separator = field_separators != NULL && strchr(field_separators, (int)ch) != NULL; 
+
+    return is_a_field_separator;
+}
+
 /* Find the start and end indexes for all words on the current 
  * line. In addition, if the cursor is between lines, add in 
  * an entry for this as well. Use an empty string to represent 
@@ -247,9 +254,10 @@ void tokens_free(tokens_st * const tokens)
  * Return the number of line_indexes found. 
  */
 tokens_st * tokenise_line(char const * const line,
-                                 size_t const start_index,
-                                 size_t const cursor_index,
-                                 bool const assign_token_to_cursor_index)
+                          size_t const start_index,
+                          size_t const cursor_index,
+                          bool const assign_token_to_cursor_index,
+                          char const * const field_separators)
 {
     tokens_st * tokens;
     size_t current_index;
@@ -329,7 +337,7 @@ tokens_st * tokenise_line(char const * const line,
                 }
             }
         }
-        else if (ch == '|')
+        else if (char_is_field_separator(field_separators, ch))
         {
             if (token_type == token_type_plain)
             {

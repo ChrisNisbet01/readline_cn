@@ -166,7 +166,9 @@ static void private_completion_context_teardown(private_completion_context_st * 
     private_completion_context->tokens = NULL;
 }
 
-static bool private_completion_context_init(private_completion_context_st * const private_completion_context, line_context_st * const line_ctx)
+static bool private_completion_context_init(private_completion_context_st * const private_completion_context, 
+                                            line_context_st * const line_ctx,
+                                            char const * const field_separators)
 {
     completion_context_st * const completion_context = &private_completion_context->public_context;
     bool init_ok;
@@ -179,7 +181,7 @@ static bool private_completion_context_init(private_completion_context_st * cons
         init_ok = false;
         goto done;
     }
-    private_completion_context->tokens = tokenise_line(line_ctx->buffer, 0, line_ctx->cursor_index, true);
+    private_completion_context->tokens = tokenise_line(line_ctx->buffer, 0, line_ctx->cursor_index, true, field_separators);
     if (private_completion_context->tokens == NULL)
     {
         init_ok = false;
@@ -317,7 +319,7 @@ void do_word_completion(readline_st * const readline_ctx)
         line_context_st * const line_ctx = &readline_ctx->line_context;
         private_completion_context_st private_completion_context;
 
-        if (!private_completion_context_init(&private_completion_context, line_ctx))
+        if (!private_completion_context_init(&private_completion_context, line_ctx, readline_ctx->field_separators))
         {
             goto done;
         }

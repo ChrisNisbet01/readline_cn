@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 static readline_st * readline_context_alloc(void)
 {
@@ -14,6 +15,7 @@ static readline_st * readline_context_alloc(void)
 
 static void readline_context_free(readline_st * const readline_ctx)
 {
+    free((void *)readline_ctx->field_separators);
     line_context_teardown(&readline_ctx->line_context);
     history_free(readline_ctx->history);
     free((void *)readline_ctx->saved_line);
@@ -73,4 +75,10 @@ char readline_context_mask_character_control(readline_st * const readline_ctx, c
     readline_ctx->mask_character = mask_character;
 
     return previous_mask_character;
+}
+
+void readline_context_set_field_separators(readline_st * const readline_ctx, char const * const field_separators)
+{
+    free((void *)readline_ctx->field_separators);
+    readline_ctx->field_separators = strdup(field_separators);
 }

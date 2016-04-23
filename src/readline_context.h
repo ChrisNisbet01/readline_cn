@@ -16,7 +16,8 @@ struct readline_st
     int terminal_width;
     struct termios previous_terminal_settings;
     char const * prompt;
-    int mask_character;    /* if non-zero, the terminal writes out this character rather than the actual character. */
+    int mask_character; /* if non-zero, the terminal writes out this character rather than the actual character. */
+    char const * field_separators;
 
     line_context_st line_context;
 
@@ -24,7 +25,7 @@ struct readline_st
     bool history_enabled;
     history_st * history;
 
-    void * user_context;    /* user specific context passed back to the user when performing auto-complete */
+    void * user_context; /* user specific context passed back to the user when performing auto-complete */
     bool insert_mode;
     completion_callback_fn completion_callback;
     help_callback_fn help_callback;

@@ -22,6 +22,7 @@ void tokens_free(tokens_st * const tokens);
 tokens_st * tokenise_line(char const * const line,
                           size_t const start_index,
                           size_t const cursor_index,
-                          bool const assign_token_to_cursor_index);
+                          bool const assign_token_to_cursor_index,
+                          char const * const field_separators);
 
 #endif /* __TOKENISE_H__ */

@@ -132,6 +132,8 @@ int main(int argc, char * argv[]__attribute__((unused)))
     }
     get_password(readline_ctx);
 
+    readline_context_set_field_separators(readline_ctx, "|"); 
+
     do
     {
         size_t argc; 

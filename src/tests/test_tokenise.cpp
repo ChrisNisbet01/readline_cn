@@ -25,7 +25,7 @@ TEST_GROUP(tokenise)
         size_t index;
 
         /* perform test */
-        tokens = tokenise_line(line, 0, 0, false);
+        tokens = tokenise_line(line, 0, 0, false, NULL);
 
         /* check results */
         LONGS_EQUAL(expected_num_tokens, tokens_get_num_tokens(tokens));
@@ -140,7 +140,7 @@ TEST_GROUP(tokenise_cursor_index)
                  char const * const expected_current_token)
     {
         /* perform test */
-        tokens = tokenise_line(line, 0, cursor_index, true);
+        tokens = tokenise_line(line, 0, cursor_index, true, NULL);
 
         /* check results */
         CHECK_TRUE(expected_current_token_index <= tokens_get_num_tokens(tokens));

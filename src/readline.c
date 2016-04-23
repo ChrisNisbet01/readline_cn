@@ -526,11 +526,11 @@ done:
     return readline_result;
 }
 
-static tokens_st * parse_tokens_from_line(char const * const line)
+static tokens_st * parse_tokens_from_line(char const * const line, char const * const field_separators)
 {
     tokens_st * tokens;
 
-    tokens = tokenise_line(line, 0, 0, false);
+    tokens = tokenise_line(line, 0, 0, false, field_separators);
 
     return tokens;
 }
@@ -577,7 +577,7 @@ readline_result_t readline_args(readline_st * const readline_ctx,
         goto done;
     }
 
-    tokens = parse_tokens_from_line(line);
+    tokens = parse_tokens_from_line(line, readline_ctx->field_separators);
     if (tokens == NULL)
     {
         args = NULL;
