@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdio.h>
 
 typedef struct token_st token_st;
 struct token_st
@@ -18,10 +19,40 @@ struct tokens_st
     size_t current_token_index;
     char const * current_token;
     size_t count;
+    size_t token_array_size;
     token_st * token_array;
 }; 
 
-static tokens_st * tokens_alloc(size_t const num_tokens)
+static bool tokens_ensure_space_for_new_token(tokens_st * const tokens)
+{
+    bool has_space;
+    token_st * new_token_array;
+    size_t new_token_array_size;
+
+    if (tokens->count < tokens->token_array_size)
+    {
+        has_space = true;
+        goto done;
+    }
+    /* Make space for another token. */
+    new_token_array_size = tokens->token_array_size + 1;
+    new_token_array = calloc(new_token_array_size, sizeof *new_token_array);
+    if (new_token_array == NULL)
+    {
+        has_space = false;
+        goto done;
+    }
+    memcpy(new_token_array, tokens->token_array, tokens->token_array_size * sizeof *new_token_array);
+    free(tokens->token_array);
+    tokens->token_array = new_token_array;
+    tokens->token_array_size = new_token_array_size;
+    has_space = true;
+
+done:
+    return has_space;
+}
+
+static tokens_st * tokens_alloc(void)
 {
     tokens_st * tokens;
 
@@ -31,36 +62,8 @@ static tokens_st * tokens_alloc(size_t const num_tokens)
         goto done;
     }
 
-    tokens->token_array = calloc(num_tokens, sizeof *tokens->token_array);
-    if (tokens->token_array == NULL)
-    {
-        free(tokens);
-        tokens = NULL;
-        goto done;
-    }
-
 done:
     return tokens;
-}
-
-static bool populate_token(token_st * const token, char const * const line, size_t const start_index, size_t const end_index)
-{
-    bool populated_ok;
-
-    token->word = strdup_partial(line, start_index, end_index);
-    if (token->word == NULL)
-    {
-        populated_ok = false;
-        goto done;
-    }
-
-    token->start_index = start_index;
-    token->end_index = end_index;
-
-    populated_ok = true;
-
-done:
-    return populated_ok;
 }
 
 static bool check_if_cursor_index_within_word(size_t const cursor_index, size_t const start_index, size_t const end_index)
@@ -92,12 +95,63 @@ static bool create_cursor_token_if_cursor_index_fits_in_token(char const * const
     if (cursor_falls_within_token)
     {
         tokens->current_token_index = tokens->count;
+        /* Only include the part of the word from the start to the 
+         * current cursor position. 
+         */
         tokens->current_token = strdup_partial(line,
                                                tokens->token_array[tokens->count].start_index,
                                                cursor_index);
     }
 
     return cursor_falls_within_token;
+}
+
+static bool populate_next_token(tokens_st * const tokens,
+                                char const * const line, 
+                                size_t const start_index, 
+                                size_t const end_index,
+                                bool const assign_token_to_cursor_index,
+                                bool * const done_cursor_index_token,
+                                size_t cursor_index)
+{
+    bool populated_ok;
+    token_st * token;
+
+    if (!tokens_ensure_space_for_new_token(tokens))
+    {
+        populated_ok = false;
+        goto done;
+    }
+    token = &tokens->token_array[tokens->count];
+    token->word = strdup_partial(line, start_index, end_index);
+
+    if (token->word == NULL)
+    {
+        populated_ok = false;
+        goto done;
+    }
+
+    token->start_index = start_index;
+    token->end_index = end_index;
+
+    if (assign_token_to_cursor_index)
+    {
+        if (!(*done_cursor_index_token))
+        {
+            *done_cursor_index_token =
+                create_cursor_token_if_cursor_index_fits_in_token(line,
+                                                                  cursor_index,
+                                                                  tokens);
+        }
+    }
+
+    tokens->count++; 
+
+
+    populated_ok = true;
+
+done:
+    return populated_ok;
 }
 
 size_t tokens_get_current_token_index(tokens_st const * const tokens)
@@ -172,10 +226,10 @@ void tokens_free(tokens_st * const tokens)
 {
     if (tokens != NULL)
     {
-        size_t index;
-
         if (tokens->token_array)
         {
+            size_t index;
+
             for (index = 0; index < tokens->count; index++)
             {
                 free(tokens->token_array[index].word);
@@ -197,29 +251,22 @@ tokens_st * tokenise_line(char const * const line,
                                  size_t const cursor_index,
                                  bool const assign_token_to_cursor_index)
 {
-    char const * const line_start = &line[start_index];
     tokens_st * tokens;
-    /* Add in space for one more to deal with the case where the 
-     * cursor is between words. In this case we want to add in an 
-     * empty arg and push subsequent words along one. 
-     */
-    size_t maximum_number_of_args = 1 + (strlen(line_start) / 2);
-    size_t maximum_possible_tokens = maximum_number_of_args + 1;
     size_t current_index;
     size_t token_start_index;
     bool done_cursor_index_token;
-    char const quoted_token_delimiter = '\"';
+    char const double_quote_delimiter = '\"';
     char const newline = '\n';
     char const nul = '\0';
     enum token_type_t
     {
         token_type_none,
         token_type_plain,
-        token_type_quoted
+        token_type_double_quoted
     };
     enum token_type_t token_type;
 
-    tokens = tokens_alloc(maximum_possible_tokens);
+    tokens = tokens_alloc();
     if (tokens == NULL)
     {
         goto done;
@@ -236,25 +283,19 @@ tokens_st * tokenise_line(char const * const line,
     {
         char ch = line[current_index];
 
-        if (token_type == token_type_quoted)
+        if (token_type == token_type_double_quoted)
         {
-            if (ch == quoted_token_delimiter)
+            if (ch == double_quote_delimiter)
             {
-                size_t index_of_end_of_word = current_index + 1; /* include the terminating double quote */
-                populate_token(&tokens->token_array[tokens->count], line, token_start_index, index_of_end_of_word);
+                size_t const index_of_end_of_word = current_index + 1; /* include the terminating double quote */
 
-                if (assign_token_to_cursor_index)
-                {
-                    if (!done_cursor_index_token)
-                    {
-                        done_cursor_index_token =
-                            create_cursor_token_if_cursor_index_fits_in_token(line,
-                                                                              cursor_index,
-                                                                              tokens);
-                    }
-                }
-
-                tokens->count++;
+                populate_next_token(tokens, 
+                                    line, 
+                                    token_start_index, 
+                                    index_of_end_of_word, 
+                                    assign_token_to_cursor_index,
+                                    &done_cursor_index_token,
+                                    cursor_index);
                 token_type = token_type_none;
             }
         }
@@ -262,20 +303,13 @@ tokens_st * tokenise_line(char const * const line,
         {
             if (token_type == token_type_plain)
             {
-                populate_token(&tokens->token_array[tokens->count], line, token_start_index, current_index);
-
-                if (assign_token_to_cursor_index)
-                {
-                    if (!done_cursor_index_token)
-                    {
-                        done_cursor_index_token =
-                            create_cursor_token_if_cursor_index_fits_in_token(line,
-                                                                              cursor_index,
-                                                                              tokens);
-                    }
-                }
-
-                tokens->count++;
+                populate_next_token(tokens, 
+                                    line, 
+                                    token_start_index, 
+                                    current_index,
+                                    assign_token_to_cursor_index,
+                                    &done_cursor_index_token,
+                                    cursor_index);
                 token_type = token_type_none;
             }
             else if (current_index == cursor_index)
@@ -284,24 +318,64 @@ tokens_st * tokenise_line(char const * const line,
                 {
                     if (!done_cursor_index_token)
                     {
-                        populate_token(&tokens->token_array[tokens->count], NULL, cursor_index, cursor_index);
-
-                        done_cursor_index_token =
-                            create_cursor_token_if_cursor_index_fits_in_token(line,
-                                                                              cursor_index,
-                                                                              tokens);
-
-                        tokens->count++;
+                        populate_next_token(tokens, 
+                                            NULL, 
+                                            cursor_index, 
+                                            cursor_index,
+                                            assign_token_to_cursor_index,
+                                            &done_cursor_index_token,
+                                            cursor_index);
                     }
                 }
             }
         }
-        else if (ch == quoted_token_delimiter)
+        else if (ch == '|')
+        {
+            if (token_type == token_type_plain)
+            {
+                populate_next_token(tokens, 
+                                    line, 
+                                    token_start_index, 
+                                    current_index,
+                                    assign_token_to_cursor_index,
+                                    & done_cursor_index_token,
+                                    cursor_index);
+                token_type = token_type_none;
+            }
+            else if (current_index == cursor_index)
+            {
+                if (assign_token_to_cursor_index)
+                {
+                    if (!done_cursor_index_token)
+                    {
+                        populate_next_token(tokens, 
+                                            NULL, 
+                                            cursor_index, 
+                                            cursor_index,
+                                            assign_token_to_cursor_index,
+                                            &done_cursor_index_token,
+                                            cursor_index);
+                    }
+                }
+            }
+            if (token_type == token_type_none)
+            {
+                /* Create a token that includes just the pipe character. */
+                populate_next_token(tokens, 
+                                    line, 
+                                    current_index, 
+                                    current_index + 1,
+                                    assign_token_to_cursor_index,
+                                    & done_cursor_index_token,
+                                    cursor_index);
+            }
+        }
+        else if (ch == double_quote_delimiter)
         {
             if (token_type == token_type_none) /* ignore double quotes embedded in words */
             {
                 token_start_index = current_index; /* include the leading double quote */
-                token_type = token_type_quoted;
+                token_type = token_type_double_quoted;
             }
         }
         else
@@ -316,20 +390,13 @@ tokens_st * tokenise_line(char const * const line,
 
     if (token_type != token_type_none) /* Line has chars at the end of the line. */
     {
-        populate_token(&tokens->token_array[tokens->count], line, token_start_index, current_index);
-
-        if (assign_token_to_cursor_index)
-        {
-            if (!done_cursor_index_token)
-            {
-                done_cursor_index_token =
-                    create_cursor_token_if_cursor_index_fits_in_token(line,
-                                                                      cursor_index,
-                                                                      tokens);
-            }
-        }
-
-        tokens->count++;
+        populate_next_token(tokens, 
+                            line, 
+                            token_start_index, 
+                            current_index,
+                            assign_token_to_cursor_index,
+                            & done_cursor_index_token,
+                            cursor_index);
     }
 
     if (assign_token_to_cursor_index)
@@ -340,14 +407,13 @@ tokens_st * tokenise_line(char const * const line,
              * line, and the cursor must also be at the end of the line. 
              */
 
-            populate_token(&tokens->token_array[tokens->count], NULL, cursor_index, cursor_index);
-
-            done_cursor_index_token =
-                create_cursor_token_if_cursor_index_fits_in_token(line,
-                                                                  cursor_index,
-                                                                  tokens);
-
-            tokens->count++;
+            populate_next_token(tokens, 
+                                NULL, 
+                                cursor_index, 
+                                cursor_index,
+                                assign_token_to_cursor_index,
+                                &done_cursor_index_token,
+                                cursor_index);
         }
     }
 
