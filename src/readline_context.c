@@ -20,7 +20,7 @@ static void readline_context_free(readline_st * const readline_ctx)
     free(readline_ctx);
 }
 
-readline_st * readline_context_create(void * const user_completion_context, 
+readline_st * readline_context_create(void * const user_context, 
                                       completion_callback_fn const completion_callback,
                                       help_callback_fn const help_callback,
                                       char const help_key,
@@ -37,7 +37,7 @@ readline_st * readline_context_create(void * const user_completion_context,
     }
     readline_ctx->insert_mode = true;
 
-    readline_ctx->user_completion_context = user_completion_context;
+    readline_ctx->user_context = user_context;
     readline_ctx->completion_callback = completion_callback;
     readline_ctx->help_callback = help_callback;
     readline_ctx->help_key = help_key;

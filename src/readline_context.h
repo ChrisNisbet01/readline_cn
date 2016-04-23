@@ -24,7 +24,7 @@ struct readline_st
     bool history_enabled;
     history_st * history;
 
-    void * user_completion_context;    /* user specific context passed back to the user when performing auto-complete */
+    void * user_context;    /* user specific context passed back to the user when performing auto-complete */
     bool insert_mode;
     completion_callback_fn completion_callback;
     help_callback_fn help_callback;

@@ -17,8 +17,6 @@ struct private_completion_context_st
 {
     args_st * possible_words;
     char const * unique_match;  /* if non-NULL, will override any possible words */
-    char * freeform_text;
-    size_t freeform_text_len;
     size_t completion_start_index;
     tokens_st * tokens; 
 

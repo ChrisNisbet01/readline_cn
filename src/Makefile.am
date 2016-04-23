@@ -2,6 +2,7 @@ AUTOMAKE_OPTIONS = foreign
 lib_LTLIBRARIES = libreadline_cn.la
 libreadline_cn_la_SOURCES = readline.c \
 						word_completion.c \
+						help.c \
 						readline_context.c \
 						filename_completion.c \
 						args.c \

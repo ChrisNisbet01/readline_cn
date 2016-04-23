@@ -30,6 +30,7 @@ void write_char(line_context_st * const line_ctx, int const ch, bool const inser
 void write_string(line_context_st * const line_ctx, char const * const string, bool insert_mode, bool const update_terminal);
 void complete_word(line_context_st * const line_ctx, char const * const completion, bool const update_terminal);
 void replace_line(line_context_st * const line_ctx, char const * const replacement);
+void redisplay_line(line_context_st * const line_ctx, char const * const prompt);
 
 
 #endif /* __LINE_CONTEXT_H__ */

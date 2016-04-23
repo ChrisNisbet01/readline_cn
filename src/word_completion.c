@@ -26,8 +26,6 @@
 #define GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(completion_context) \
     container_of(completion_context, private_completion_context_st, public_context)
 
-static char       newline_str[] = "\n"; 
-
 static char const * find_longest_completion_suffix(size_t const token_length, size_t const num_words, char const * const * const words)
 {
     char const * longest_match;
@@ -112,7 +110,7 @@ static int unique_match_set(completion_context_st * const completion_context,
     return 0;
 }
 
-size_t get_current_token_index(completion_context_st * const completion_context)
+static size_t get_current_token_index(completion_context_st * const completion_context)
 {
     private_completion_context_st * const private_completion_context =
         GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(completion_context);
@@ -120,7 +118,7 @@ size_t get_current_token_index(completion_context_st * const completion_context)
     return tokens_get_current_token_index(private_completion_context->tokens);
 }
 
-char const * get_current_token(completion_context_st * const completion_context)
+static char const * get_current_token(completion_context_st * const completion_context)
 {
     private_completion_context_st * const private_completion_context =
         GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(completion_context);
@@ -128,7 +126,7 @@ char const * get_current_token(completion_context_st * const completion_context)
     return tokens_get_current_token(private_completion_context->tokens);
 }
 
-size_t get_num_tokens(completion_context_st * const completion_context)
+static size_t get_num_tokens(completion_context_st * const completion_context)
 {
     private_completion_context_st * const private_completion_context =
         GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(completion_context);
@@ -136,7 +134,7 @@ size_t get_num_tokens(completion_context_st * const completion_context)
     return tokens_get_num_tokens(private_completion_context->tokens);
 }
 
-char const * get_token_at_index(completion_context_st * const completion_context, size_t const index)
+static char const * get_token_at_index(completion_context_st * const completion_context, size_t const index)
 {
     private_completion_context_st * const private_completion_context =
         GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(completion_context);
@@ -162,8 +160,6 @@ static void private_completion_context_teardown(private_completion_context_st * 
         completion_context->write_back_fd = -1;
     }
     
-    free(private_completion_context->freeform_text);
-    private_completion_context->freeform_text = NULL;
     args_free(private_completion_context->possible_words);
     private_completion_context->possible_words = NULL;
     tokens_free(private_completion_context->tokens);
@@ -230,27 +226,6 @@ static void process_unique_match(private_completion_context_st * const private_c
     {
         complete_word(line_ctx, longest_completion_suffix, true);
         free((void *)longest_completion_suffix);
-    }
-}
-
-static void print_current_edit_line(line_context_st * const line_ctx)
-{
-    tty_puts(line_ctx->terminal_fd, line_ctx->buffer, '\0');
-    line_ctx->cursor_index = strlen(line_ctx->buffer);
-}
-
-static void redisplay_line(line_context_st * const line_ctx, char const * const prompt)
-{
-    size_t const original_cursor_index = line_ctx->cursor_index;
-
-    tty_puts(line_ctx->terminal_fd, prompt, '\0');
-    print_current_edit_line(line_ctx);
-    /* Move the cursor back to where it was before we redisplayed 
-     * the line. 
-     */
-    if (line_ctx->cursor_index > original_cursor_index)
-    {
-        move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index - original_cursor_index);
     }
 }
 
@@ -329,7 +304,6 @@ static void private_completion_context_process_results(private_completion_contex
 
     if (need_to_redisplay_line)
     {
-        tty_puts(line_ctx->terminal_fd, newline_str, '\0');
         redisplay_line(line_ctx, readline_ctx->prompt);
     }
 }
@@ -349,7 +323,7 @@ void do_word_completion(readline_st * const readline_ctx)
         }
 
         characters_were_printed = readline_ctx->completion_callback(&private_completion_context.public_context,
-                                          readline_ctx->user_completion_context);
+                                          readline_ctx->user_context);
 
         private_completion_context_process_results(&private_completion_context, readline_ctx, characters_were_printed > 0);
 
@@ -360,29 +334,4 @@ done:
     return;
 }
 
-void do_help(readline_st * const readline_ctx)
-{
-    if (readline_ctx->help_callback != NULL)
-    {
-        int characters_were_printed;
-
-        line_context_st * const line_ctx = &readline_ctx->line_context;
-        private_completion_context_st private_completion_context;
-
-        if (!private_completion_context_init(&private_completion_context, line_ctx))
-        {
-            goto done;
-        }
-
-        characters_were_printed = readline_ctx->help_callback(&private_completion_context.public_context,
-                                                                    readline_ctx->user_completion_context);
-
-        private_completion_context_process_results(&private_completion_context, readline_ctx, characters_were_printed > 0);
-
-        private_completion_context_teardown(&private_completion_context);
-    }
-
-done:
-    return;
-}
 

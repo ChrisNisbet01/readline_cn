@@ -5,6 +5,7 @@
 #include "readline_context.h"
 #include "tokenise.h"
 #include "word_completion.h"
+#include "help.h"
 #include "history.h"
 
 #include <stdlib.h>

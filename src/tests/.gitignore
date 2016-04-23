@@ -8,3 +8,4 @@
 /test_strdup_partial
 /test_split_path
 /test_tokenise
+/test_directory

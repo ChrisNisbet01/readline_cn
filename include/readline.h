@@ -18,6 +18,7 @@ enum readline_result_t
 };
 
 typedef struct completion_context_st completion_context_st;
+typedef struct help_context_st help_context_st; 
 
 typedef int (* completion_possible_word_add_fn)(completion_context_st * const completion_context,
                                                 char const * const possible_word);
@@ -27,7 +28,7 @@ typedef int (* completion_unique_match_set_fn)(completion_context_st * const com
                                                 char const * const unique_match);
 typedef int (* completion_callback_fn)(completion_context_st * const completion_context,
                                        void * const user_context);
-typedef int (* help_callback_fn)(completion_context_st * const completion_context,
+typedef int (* help_callback_fn)(help_context_st * const completion_context,
                                        void * const user_context); 
 
 typedef size_t (* tokens_get_current_token_index_fn)(completion_context_st * const completion_context);
@@ -50,7 +51,22 @@ struct completion_context_st
     int write_back_fd;
 };
 
-readline_st * readline_context_create(void * const user_completion_context,
+typedef size_t (* help_tokens_get_current_token_index_fn)(help_context_st * const help_context);
+typedef char const * (* help_tokens_get_current_token_fn)(help_context_st * const help_context);
+typedef size_t (* help_tokens_get_num_tokens_fn)(help_context_st * const help_context);
+typedef char const * (* help_tokens_get_token_at_index_fn)(help_context_st * const help_context, size_t const index);
+
+struct help_context_st
+{
+    help_tokens_get_current_token_index_fn tokens_get_current_token_index_fn;
+    help_tokens_get_current_token_fn tokens_get_current_token_fn;
+    help_tokens_get_num_tokens_fn tokens_get_num_tokens_fn;
+    help_tokens_get_token_at_index_fn tokens_get_token_at_index_fn;
+
+    int write_back_fd;
+}; 
+
+readline_st * readline_context_create(void * const user_context,
                                       completion_callback_fn const completion_callback,
                                       help_callback_fn const help_callback,
                                       char const help_key,

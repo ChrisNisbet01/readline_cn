@@ -64,14 +64,14 @@ static int test_completion_callback(completion_context_st * const completion_con
     return result;
 }
 
-static int test_help_callback(completion_context_st * const completion_context,
+static int test_help_callback(help_context_st * const help_context,
                                     void * const user_context)
 {
     (void)user_context;
     int result = 1;
-    size_t const current_token_index = completion_context->tokens_get_current_token_index_fn(completion_context);
+    size_t const current_token_index = help_context->tokens_get_current_token_index_fn(help_context);
 
-    dprintf(completion_context->write_back_fd, "\nhere's some help and current token_index %u\n", current_token_index); 
+    dprintf(help_context->write_back_fd, "\nhere's some help and current token_index %u\n", current_token_index);
 
     return result;
 }
