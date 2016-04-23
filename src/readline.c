@@ -130,7 +130,7 @@ static void handle_down_arrow(readline_st * const readline_ctx)
 
                 /* If the current line matched what we had saved and we still 
                  * replaced it, we'd get the side-effect that the current 
-                 * cursor editing poistion would jump to the end of the line. 
+                 * cursor editing position would jump to the end of the line. 
                  */
                 if (strcmp(line_ctx->buffer, readline_ctx->saved_line) != 0)
                 {
@@ -178,6 +178,135 @@ done:
     return ch;
 }
 
+static readline_status_t handle_escape_o(readline_st * const readline_ctx)
+{
+    readline_status_t status;
+    int escape_command_char;
+
+    escape_command_char = read_char_from_input_descriptor(readline_ctx->in_fd,
+                                                          readline_ctx->maximum_seconds_to_wait_for_char,
+                                                          &status);
+    if (status != readline_status_continue)
+    {
+        goto done;
+    }
+
+    switch (escape_command_char)
+    {
+        case 'F':
+            handle_end_key(readline_ctx);
+            break;
+        case 'H':
+            handle_home_key(readline_ctx);
+            break;
+        default:
+            /* Silently ignore everything else. */
+            break;
+    }
+
+done:
+    return status;
+}
+
+static void handle_escape_left_bracket_1(readline_st * const readline_ctx)
+{
+    int ch;
+
+    ch = '\0';
+    tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+    switch (ch)
+    {
+        case '~':
+            handle_home_key(readline_ctx);
+            break;
+        case ';':
+        {
+            /* Next char is a '2'. Just ignore it. */
+            ch = '\0';
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
+            /* Next char is important. */
+            ch = '\0';
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+            switch (ch)
+            {
+                case 'A':
+                    /* Shift + up arrow. */
+                    break;
+                case 'B':
+                    /* Shift + down arrow. */
+                    break;
+                case 'C':
+                    /* Shift + right arrow. */
+                    break;
+                case 'D':
+                    /* Shift + left arrow. */
+                    break;
+            }
+            break;
+        }
+    }
+}
+
+static readline_status_t handle_escape_left_bracket(readline_st * const readline_ctx)
+{
+    readline_status_t status;
+    int escape_command_char;
+
+    escape_command_char = read_char_from_input_descriptor(readline_ctx->in_fd,
+                                                          readline_ctx->maximum_seconds_to_wait_for_char,
+                                                          &status);
+    if (status != readline_status_continue)
+    {
+        goto done;
+    }
+
+    switch (escape_command_char)
+    {
+        case '1':
+            handle_escape_left_bracket_1(readline_ctx);
+            break;
+        case '2':
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
+            handle_insert_key(readline_ctx);
+            break;
+        case '3':
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
+            handle_delete(readline_ctx);
+            break;
+        case '4':
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
+            handle_end_key(readline_ctx);
+            break;
+        case '5':
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
+            // TODO: handle_page_up(readline_ctx);
+            break;
+        case '6':
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
+            // TODO: handle_page_down(readline_ctx);
+            break;
+        case 'A':
+            handle_up_arrow(readline_ctx);
+            break;
+        case 'B':
+            handle_down_arrow(readline_ctx);
+            break;
+        case 'C':
+            handle_right_arrow(readline_ctx);
+            break;
+        case 'D':
+            handle_left_arrow(readline_ctx);
+            break;
+        case 'E':   /* 5 on the numeric keypad */
+            break;
+        default:
+            break;
+    }
+
+done:
+    return status;
+}
+
 static readline_status_t handle_escaped_char(readline_st * const readline_ctx)
 {
     readline_status_t status;
@@ -190,68 +319,17 @@ static readline_status_t handle_escaped_char(readline_st * const readline_ctx)
     {
         goto done;
     }
-
-    if (escaped_char == '[' || escaped_char == 'O')
+    if (escaped_char == 'O')
     {
-        int escape_command_char;
-
-        escape_command_char = read_char_from_input_descriptor(readline_ctx->in_fd,
-                                                       readline_ctx->maximum_seconds_to_wait_for_char,
-                                                       &status);
-        if (status != readline_status_continue)
-        {
-            goto done;
-        }
-
-        switch (escape_command_char)
-        {
-            case '1':
-                tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-                handle_home_key(readline_ctx);
-                break;
-            case '2':
-                tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-                handle_insert_key(readline_ctx);
-                break;
-            case '3':
-                tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-                handle_delete(readline_ctx);
-                break;
-            case '4':
-                tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-                handle_end_key(readline_ctx);
-                break;
-            case '5':
-                tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-                // TODO: handle_page_up(readline_ctx);
-                break;
-            case '6':
-                tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-                // TODO: handle_page_down(readline_ctx);
-                break;
-            case 'A':
-                handle_up_arrow(readline_ctx);
-                break;
-            case 'B':
-                handle_down_arrow(readline_ctx);
-                break;
-            case 'C':
-                handle_right_arrow(readline_ctx);
-                break;
-            case 'D':
-                handle_left_arrow(readline_ctx);
-                break;
-            case 'E':   /* 5 on the numeric keypad */
-                break;
-            case 'F':
-                handle_end_key(readline_ctx);
-                break;
-            case 'H':
-                handle_home_key(readline_ctx);
-                break;
-            default:
-                break;
-        }
+        status = handle_escape_o(readline_ctx);
+    }
+    else if (escaped_char == '[')
+    {
+        status = handle_escape_left_bracket(readline_ctx);
+    }
+    else
+    {
+        /* Silently ignore other characters. */
     }
 
 done:
