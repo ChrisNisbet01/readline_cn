@@ -143,6 +143,11 @@ void do_help(readline_st * const readline_ctx)
             goto done;
         }
 
+        /* The idea is that the callback will write directly to the 
+         * write_back_fd file descriptor anything that they like. The 
+         * return value should be non-zero if anything was written, and 
+         * in that case the current edit line will be redisplayed. 
+         */
         characters_were_printed = readline_ctx->help_callback(&private_help_context.public_context,
                                                               readline_ctx->user_context);
 

@@ -30,8 +30,6 @@ enum readline_status_t
 #define BACKSPACE 127
 #define ESC 27
 
-static char       newline_str[] = "\n";
-
 static void handle_right_arrow(readline_st * const readline_ctx)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;
@@ -249,7 +247,7 @@ done:
 
 static readline_status_t handle_enter(readline_st const * const readline_ctx)
 {
-    tty_puts(readline_ctx->out_fd, newline_str, '\0');
+    tty_put(readline_ctx->out_fd, '\n');
 
     return readline_status_done;
 }

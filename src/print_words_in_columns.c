@@ -4,8 +4,6 @@
 #include <stddef.h>
 #include <string.h>
 
-static char       newline_str[] = "\n";
-
 static size_t get_longest_word_length(unsigned int const word_count, char const * * const words)
 {
     size_t longest_word_length;
@@ -76,13 +74,13 @@ void print_words_in_columns(int const out_fd, int const terminal_width, unsigned
     words_per_row = terminal_width / column_width;
     rows = 1 + (word_count / words_per_row);
 
-    tty_puts(out_fd, newline_str, '\0');
+    tty_put(out_fd, '\n');
     for (row = 0; row < rows; row++)
     {
         print_row(out_fd, row, rows, word_count, words, column_width);
         if (row < rows - 1)
         {
-            tty_puts(out_fd, newline_str, '\0');
+            tty_put(out_fd, '\n');
         }
     }
 }
