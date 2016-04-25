@@ -82,3 +82,12 @@ void readline_context_set_field_separators(readline_st * const readline_ctx, cha
     free((void *)readline_ctx->field_separators);
     readline_ctx->field_separators = strdup(field_separators);
 }
+
+size_t readline_context_set_maximum_line_length(readline_st * const readline_ctx, size_t maximum_line_length)
+{
+    size_t const previous_maximum = readline_ctx->maximum_line_length;
+
+    readline_ctx->maximum_line_length = maximum_line_length;
+
+    return previous_maximum;
+}

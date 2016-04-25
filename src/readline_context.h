@@ -18,6 +18,7 @@ struct readline_st
     char const * prompt;
     int mask_character; /* if non-zero, the terminal writes out this character rather than the actual character. */
     char const * field_separators;
+    size_t maximum_line_length;
 
     line_context_st line_context;
 

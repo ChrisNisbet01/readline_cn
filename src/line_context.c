@@ -40,6 +40,11 @@ static bool check_line_buffer_size(line_context_st * const line_ctx, size_t cons
     /* Check that there is room for 'characters_to_add' 
      * characters. 
      */
+    if (line_ctx->maximum_line_length > 0 && line_ctx->line_length == line_ctx->maximum_line_length)
+    {
+        buffer_size_ok = false;
+        goto done;
+    }
     if (line_ctx->line_length + 1 + space_required <= line_ctx->buffer_size)
     {
         buffer_size_ok = true;
@@ -62,13 +67,19 @@ done:
     return buffer_size_ok;
 }
 
-static void line_ctx_write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode)
+static bool line_ctx_write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode)
 {
+    bool char_was_written;
     size_t const trailing_length = line_ctx->line_length - line_ctx->cursor_index;
+    bool const line_length_will_increase = insert_mode || (line_ctx->cursor_index >= line_ctx->line_length);
 
-    if (!check_line_buffer_size(line_ctx, 1))
+    if (line_length_will_increase)
     {
-        goto done;
+        if (!check_line_buffer_size(line_ctx, 1))
+        {
+            char_was_written = false;
+            goto done;
+        }
     }
 
     if (insert_mode)
@@ -82,16 +93,16 @@ static void line_ctx_write_char(line_context_st * const line_ctx, int const ch, 
     line_ctx->buffer[line_ctx->cursor_index] = ch;
     line_ctx->cursor_index++;
 
-    if (insert_mode || line_ctx->cursor_index > line_ctx->line_length)
+    if (line_length_will_increase)
     {
         line_ctx->line_length++;
+        /* keep the line NUL terminated */
+        line_ctx->buffer[line_ctx->line_length] = '\0';
     }
-
-    /* keep the line NUL terminated */
-    line_ctx->buffer[line_ctx->line_length] = '\0';
+    char_was_written = true;
 
 done:
-    return;
+    return char_was_written;
 }
 
 static void delete_line_from_cursor_to_end(line_context_st * const line_ctx)
@@ -126,10 +137,11 @@ void redisplay_line(line_context_st * const line_ctx, char const * const prompt)
 }
 
 bool line_context_init(line_context_st * const line_context,
-                      size_t const initial_size, 
-                      size_t const size_increment,
-                      int const terminal_fd,
-                      int const mask_character)
+                       size_t const initial_size, 
+                       size_t const size_increment,
+                       size_t maximum_line_length,
+                       int const terminal_fd,
+                       int const mask_character)
 {
     bool init_ok;
 
@@ -145,6 +157,7 @@ bool line_context_init(line_context_st * const line_context,
         goto done;
     }
     line_context->line_length = 0;
+    line_context->maximum_line_length = maximum_line_length;
     line_context->cursor_index = 0;
     line_context->buffer[0] = '\0';
 
@@ -241,11 +254,12 @@ void delete_char_to_the_left(line_context_st * const line_ctx)
 /* Write a char at the current cursor position. */
 void write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode, bool const update_terminal)
 {
-    line_ctx_write_char(line_ctx, ch, insert_mode);
-
-    if (update_terminal)
+    if (line_ctx_write_char(line_ctx, ch, insert_mode))
     {
-        terminal_write_char(line_ctx, ch, insert_mode);
+        if (update_terminal)
+        {
+            terminal_write_char(line_ctx, ch, insert_mode);
+        }
     }
 }
 

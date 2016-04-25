@@ -126,10 +126,11 @@ static bool readline_init(readline_st * const readline_ctx)
     line_context_st * const line_ctx = &readline_ctx->line_context;
 
     if (!line_context_init(line_ctx,
-                          INITIAL_LINE_BUFFER_SIZE,
-                          LINE_BUFFER_SIZE_INCREMENT,
-                          readline_ctx->out_fd,
-                          readline_ctx->mask_character))
+                           INITIAL_LINE_BUFFER_SIZE,
+                           LINE_BUFFER_SIZE_INCREMENT,
+                           readline_ctx->maximum_line_length,
+                           readline_ctx->out_fd,
+                           readline_ctx->mask_character))
     {
         readline_prepared = false;
         goto done;

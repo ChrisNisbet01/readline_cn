@@ -11,16 +11,18 @@ struct line_context_st
     char * buffer; /* Storage for the line being edited. */
     size_t buffer_size; /* Amount of memory alloced for the line. */
     size_t line_length; /* Current length of the line. */
+    size_t maximum_line_length;
     size_t cursor_index; /* Location of the cursor in the line. */
     int terminal_fd; /* The file descriptor to write to when updating the terminal. */
     int mask_character; /* if non-zero, the character to write to the terminal instead of the actual character entered. */
 }; 
 
 bool line_context_init(line_context_st * const line_context,
-                      size_t const initial_size, 
-                      size_t const size_increment,
-                      int const terminal_fd,
-                      int const mask_character);
+                       size_t const initial_size, 
+                       size_t const size_increment,
+                       size_t maximum_line_length,
+                       int const terminal_fd,
+                       int const mask_character);
 void line_context_teardown(line_context_st * const line_context);
 void move_cursor_right_n_columns(line_context_st * const line_ctx, size_t columns);
 void move_cursor_left_n_columns(line_context_st * const line_ctx, size_t const columns);
