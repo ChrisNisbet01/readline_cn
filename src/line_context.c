@@ -107,6 +107,14 @@ static void print_current_edit_line(line_context_st * const line_ctx)
     line_ctx->cursor_index = strlen(line_ctx->buffer);
 }
 
+static void restore_cursor_position(line_context_st * const line_ctx, size_t const original_cursor_position)
+{
+    if (line_ctx->cursor_index > original_cursor_position)
+    {
+        move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index - original_cursor_position);
+    }
+}
+
 void redisplay_line(line_context_st * const line_ctx, char const * const prompt)
 {
     size_t const original_cursor_index = line_ctx->cursor_index;
@@ -114,13 +122,7 @@ void redisplay_line(line_context_st * const line_ctx, char const * const prompt)
     tty_put(line_ctx->terminal_fd, '\n');
     tty_puts(line_ctx->terminal_fd, prompt, '\0');
     print_current_edit_line(line_ctx);
-    /* Move the cursor back to where it was before we redisplayed 
-     * the line. 
-     */
-    if (line_ctx->cursor_index > original_cursor_index)
-    {
-        move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index - original_cursor_index);
-    }
+    restore_cursor_position(line_ctx, original_cursor_index);
 }
 
 bool line_context_init(line_context_st * const line_context,
@@ -188,7 +190,12 @@ void move_cursor_left_n_columns(line_context_st * const line_ctx, size_t const c
     }
 }
 
-void replace_line(line_context_st * const line_ctx, char const * const replacement)
+/*
+ * replace_edit_line: 
+ * Replace the whole line except for the leading prompt with the
+ * replacement. 
+*/
+void replace_edit_line(line_context_st * const line_ctx, char const * const replacement)
 {
     move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index);
     delete_line_from_cursor_to_end(line_ctx);
@@ -219,7 +226,7 @@ void delete_char_to_the_right(line_context_st * const line_ctx, bool const updat
 
 void delete_char_to_the_left(line_context_st * const line_ctx)
 {
-    /* If we move the cursor to the left one position, the 
+    /* If we move the cursor to the left one position, this 
      * operation becomes just like deleting the character to the 
      * right. 
      */
@@ -269,6 +276,19 @@ void complete_word(line_context_st * const line_ctx, char const * const completi
      */
     delete_to_end_of_word(line_ctx, update_terminal);
     write_string(line_ctx, completion, true, update_terminal);
+}
+
+void free_saved_line(char const * * const saved_line)
+{
+    free((void *) *saved_line);
+    *saved_line = NULL;
+}
+
+void save_current_line(line_context_st * const line_ctx, char const * * const destination)
+{
+    /* Free any old string at the destination. */
+    free_saved_line(destination);
+    *destination = strdup(line_ctx->buffer);
 }
 
 

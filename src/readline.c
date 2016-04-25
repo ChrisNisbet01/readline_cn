@@ -4,9 +4,10 @@
 #include "line_context.h"
 #include "readline_context.h"
 #include "tokenise.h"
-#include "word_completion.h"
-#include "help.h"
 #include "history.h"
+#include "readline_status.h"
+#include "read_char.h"
+#include "handlers.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -16,390 +17,13 @@
 #define INITIAL_LINE_BUFFER_SIZE 10
 #define LINE_BUFFER_SIZE_INCREMENT 5
 
-typedef enum readline_status_t readline_status_t;
-enum readline_status_t
-{
-    readline_status_done,
-    readline_status_error,
-    readline_status_continue,
-    readline_status_ctrl_c,
-    readline_status_timed_out,
-    readline_status_eof
-}; 
-
 #define BACKSPACE 127
 #define ESC 27
 
-static void handle_right_arrow(readline_st * const readline_ctx)
-{
-    line_context_st * const line_ctx = &readline_ctx->line_context;
 
-    move_cursor_right_n_columns(line_ctx, 1);
-}
-
-static void handle_left_arrow(readline_st * const readline_ctx)
-{
-    line_context_st * const line_ctx = &readline_ctx->line_context;
-
-    move_cursor_left_n_columns(line_ctx, 1);
-}
-
-static void handle_home_key(readline_st * const readline_ctx)
-{
-    line_context_st * const line_ctx = &readline_ctx->line_context;
-
-    move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index);
-}
-
-static void handle_end_key(readline_st * const readline_ctx)
-{
-    line_context_st * const line_ctx = &readline_ctx->line_context;
-
-    move_cursor_right_n_columns(line_ctx, line_ctx->line_length - line_ctx->cursor_index);
-}
-
-static void handle_insert_key(readline_st * const readline_ctx)
-{
-    readline_ctx->insert_mode = !readline_ctx->insert_mode;
-    /* FIXME - Change the cursor shape according to current mode. */
-}
-
-static void handle_backspace(readline_st * const readline_ctx)
-{
-    line_context_st * const line_ctx = &readline_ctx->line_context;
-
-    delete_char_to_the_left(line_ctx);
-}
-
-static void handle_delete(readline_st * const readline_ctx)
-{
-    line_context_st * const line_ctx = &readline_ctx->line_context;
-
-    delete_char_to_the_right(line_ctx, true);
-}
-
-static void save_current_line(line_context_st * const line_ctx, char const * * const destination)
-{
-    /* Free any old string at the destination. */
-    free((void *)*destination);
-    *destination = strdup(line_ctx->buffer);
-}
-
-static void free_saved_line(char const * * const saved_line)
-{
-    free((void *)*saved_line);
-    *saved_line = NULL;
-}
-
-static void handle_up_arrow(readline_st * const readline_ctx)
-{
-    history_st * const history = readline_ctx->history;
-    line_context_st * const line_ctx = &readline_ctx->line_context;
-    char const * historic_line;
-
-    if (history_currently_at_most_recent(readline_ctx->history))
-    {
-        /* save the current line in case the user returns to the top 
-         * of the history 
-         */
-        save_current_line(line_ctx, &readline_ctx->saved_line);
-
-    }
-    historic_line = history_get_older_entry(history);
-
-    if (historic_line != NULL)
-    {
-        replace_line(line_ctx, historic_line);
-    }
-
-}
-
-static void handle_down_arrow(readline_st * const readline_ctx)
-{
-    history_st * const history = readline_ctx->history;
-    char const * replacement_line;
-
-    replacement_line = history_get_newer_entry(history);
-    if (replacement_line == NULL)
-    {
-        if (history_currently_at_most_recent(history))
-        {
-            if (readline_ctx->saved_line != NULL)
-            {
-                line_context_st * line_ctx = &readline_ctx->line_context;
-
-                /* If the current line matched what we had saved and we still 
-                 * replaced it, we'd get the side-effect that the current 
-                 * cursor editing position would jump to the end of the line. 
-                 */
-                if (strcmp(line_ctx->buffer, readline_ctx->saved_line) != 0)
-                {
-                    replacement_line = readline_ctx->saved_line;
-                }
-            }
-        }
-    }
-
-    if (replacement_line != NULL)
-    {
-        line_context_st * line_ctx = &readline_ctx->line_context;
-
-        replace_line(line_ctx, replacement_line);
-        if (replacement_line == readline_ctx->saved_line)
-        {
-            free_saved_line(&readline_ctx->saved_line);
-        }
-    }
-}
-
-static int read_char_from_input_descriptor(int const input_fd, unsigned int const maximum_seconds_to_wait, readline_status_t * const readline_status)
-{
-    int ch;
-    readline_status_t status;
-    tty_get_result_t tty_get_result;
-
-    tty_get_result = tty_get(input_fd, maximum_seconds_to_wait, &ch);
-    switch (tty_get_result)
-    {
-        case tty_get_result_eof:
-            status = readline_status_eof;
-            goto done;
-
-        case tty_get_result_timeout:
-            status = readline_status_timed_out;
-            goto done;
-        case tty_get_result_ok:
-            break;
-    }
-    status = readline_status_continue;
-
-done:
-    *readline_status = status;
-    return ch;
-}
-
-static readline_status_t handle_escape_o(readline_st * const readline_ctx)
+static readline_status_t handle_new_input_from_terminal(readline_st * const readline_ctx, int const ch)
 {
     readline_status_t status;
-    int escape_command_char;
-
-    escape_command_char = read_char_from_input_descriptor(readline_ctx->in_fd,
-                                                          readline_ctx->maximum_seconds_to_wait_for_char,
-                                                          &status);
-    if (status != readline_status_continue)
-    {
-        goto done;
-    }
-
-    switch (escape_command_char)
-    {
-        case 'F':
-            handle_end_key(readline_ctx);
-            break;
-        case 'H':
-            handle_home_key(readline_ctx);
-            break;
-        default:
-            /* Silently ignore everything else. */
-            break;
-    }
-
-done:
-    return status;
-}
-
-static void handle_escape_left_bracket_1(readline_st * const readline_ctx)
-{
-    int ch;
-
-    ch = '\0';
-    tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
-    switch (ch)
-    {
-        case '~':
-            handle_home_key(readline_ctx);
-            break;
-        case ';':
-        {
-            /* Next char is a '2'. Just ignore it. */
-            ch = '\0';
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
-            /* Next char is important. */
-            ch = '\0';
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
-            switch (ch)
-            {
-                case 'A':
-                    /* Shift + up arrow. */
-                    break;
-                case 'B':
-                    /* Shift + down arrow. */
-                    break;
-                case 'C':
-                    /* Shift + right arrow. */
-                    break;
-                case 'D':
-                    /* Shift + left arrow. */
-                    break;
-            }
-            break;
-        }
-    }
-}
-
-static readline_status_t handle_escape_left_bracket(readline_st * const readline_ctx)
-{
-    readline_status_t status;
-    int escape_command_char;
-
-    escape_command_char = read_char_from_input_descriptor(readline_ctx->in_fd,
-                                                          readline_ctx->maximum_seconds_to_wait_for_char,
-                                                          &status);
-    if (status != readline_status_continue)
-    {
-        goto done;
-    }
-
-    switch (escape_command_char)
-    {
-        case '1':
-            handle_escape_left_bracket_1(readline_ctx);
-            break;
-        case '2':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-            handle_insert_key(readline_ctx);
-            break;
-        case '3':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-            handle_delete(readline_ctx);
-            break;
-        case '4':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-            handle_end_key(readline_ctx);
-            break;
-        case '5':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-            // TODO: handle_page_up(readline_ctx);
-            break;
-        case '6':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-            // TODO: handle_page_down(readline_ctx);
-            break;
-        case 'A':
-            handle_up_arrow(readline_ctx);
-            break;
-        case 'B':
-            handle_down_arrow(readline_ctx);
-            break;
-        case 'C':
-            handle_right_arrow(readline_ctx);
-            break;
-        case 'D':
-            handle_left_arrow(readline_ctx);
-            break;
-        case 'E':   /* 5 on the numeric keypad */
-            break;
-        default:
-            break;
-    }
-
-done:
-    return status;
-}
-
-static readline_status_t handle_escaped_char(readline_st * const readline_ctx)
-{
-    readline_status_t status;
-    int escaped_char;
-
-    escaped_char = read_char_from_input_descriptor(readline_ctx->in_fd,
-                                         readline_ctx->maximum_seconds_to_wait_for_char,
-                                         &status);
-    if (status != readline_status_continue)
-    {
-        goto done;
-    }
-    if (escaped_char == 'O')
-    {
-        status = handle_escape_o(readline_ctx);
-    }
-    else if (escaped_char == '[')
-    {
-        status = handle_escape_left_bracket(readline_ctx);
-    }
-    else
-    {
-        /* Silently ignore other characters. */
-    }
-
-done:
-    return status;
-}
-
-static readline_status_t handle_enter(readline_st const * const readline_ctx)
-{
-    tty_put(readline_ctx->out_fd, '\n');
-
-    return readline_status_done;
-}
-
-static void handle_tab(readline_st * const readline_ctx)
-{
-    /* Word completion isn't performed if the user has requested 
-     * to mask the input characters. 
-     */
-    if (readline_ctx->mask_character == '\0')
-    {
-        do_word_completion(readline_ctx);
-    }
-}
-
-static readline_status_t handle_control_char(readline_st * const readline_ctx, int const ch)
-{
-    readline_status_t status = readline_status_continue;
-
-    switch (ch)
-    {
-        case '\t': /* TAB */
-            handle_tab(readline_ctx); 
-            break;
-        case '\n': /* ENTER */
-            status = handle_enter(readline_ctx);
-            break;
-        case CTL('C'):
-            status = readline_status_ctrl_c;
-            break;
-        default:  /* silently ignore */
-            break;
-    }                 
-
-    return status;
-}
-
-static void handle_regular_char(readline_st * const readline_ctx, int const ch, bool const update_terminal)
-{
-    if (readline_ctx->help_key != '\0' && ch == (int)readline_ctx->help_key)
-    {
-        do_help(readline_ctx);
-    }
-    else
-    {
-        write_char(&readline_ctx->line_context, ch, readline_ctx->insert_mode, update_terminal);
-    }
-}
-
-static readline_status_t get_new_input_from_terminal(readline_st * const readline_ctx)
-{
-    int ch;
-    readline_status_t status;
-
-    ch = read_char_from_input_descriptor(readline_ctx->in_fd,
-                                 readline_ctx->maximum_seconds_to_wait_for_char,
-                                 &status);
-    if (status != readline_status_continue)
-    {
-        goto done;
-    }
 
     switch (ch)
     {
@@ -423,22 +47,12 @@ static readline_status_t get_new_input_from_terminal(readline_st * const readlin
             break;
     }
 
-done:
     return status;
 }
 
-static readline_status_t get_new_input_from_file(readline_st * const readline_ctx)
+static readline_status_t handle_new_input_from_file(readline_st * const readline_ctx, int const ch)
 {
-    int ch;
     readline_status_t status;
-
-    ch = read_char_from_input_descriptor(readline_ctx->in_fd,
-                                         readline_ctx->maximum_seconds_to_wait_for_char,
-                                         &status);
-    if (status != readline_status_continue)
-    {
-        goto done;
-    }
 
     switch (ch)
     {
@@ -451,23 +65,40 @@ static readline_status_t get_new_input_from_file(readline_st * const readline_ct
             break;
     }
 
-done:
     return status;
 }
 
-static readline_status_t get_new_input(readline_st * const readline_ctx)
+static readline_status_t process_new_input(readline_st * const readline_ctx, int const ch)
 {
     readline_status_t status;
 
     if (readline_ctx->is_a_terminal)
     {
-        status = get_new_input_from_terminal(readline_ctx);
+        status = handle_new_input_from_terminal(readline_ctx, ch);
     }
     else
     {
-        status = get_new_input_from_file(readline_ctx);
+        status = handle_new_input_from_file(readline_ctx, ch);
     }
 
+    return status;
+}
+
+static readline_status_t get_and_process_new_input(readline_st * const readline_ctx)
+{
+    readline_status_t status;
+    int ch;
+
+    ch = read_char_from_input_descriptor(readline_ctx->in_fd,
+                                         readline_ctx->maximum_seconds_to_wait_for_char,
+                                         &status);
+    if (status != readline_status_continue)
+    {
+        goto done;
+    }
+    status = process_new_input(readline_ctx, ch);
+
+done:
     return status;
 }
 
@@ -482,7 +113,7 @@ static readline_status_t edit_input(readline_st * const readline_ctx)
 
     do
     {
-        status = get_new_input(readline_ctx);
+        status = get_and_process_new_input(readline_ctx);
     }
     while (status == readline_status_continue);
 
@@ -589,9 +220,7 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
 
         if (should_add_to_history)
         {
-            history_st * history = readline_ctx->history;
-
-            history_add(history, line_ctx->buffer);
+            history_add(readline_ctx->history, line_ctx->buffer);
         }
         *line = line_ctx->buffer;
         line_ctx->buffer = NULL;
@@ -604,7 +233,6 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
     readline_cleanup(readline_ctx);
 
 done:
-
     return readline_result;
 }
 
