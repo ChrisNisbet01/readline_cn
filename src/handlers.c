@@ -19,6 +19,42 @@ static readline_status_t handle_enter(readline_st * const readline_ctx)
     return readline_status_done;
 }
 
+static void handle_control_t(readline_st * const readline_ctx)
+{
+    line_context_st * const line_ctx = &readline_ctx->line_context;
+    size_t columns_to_move_left;
+    char first_char;
+    char second_char;
+
+    if (line_ctx->line_length < 2)
+    {
+        goto done;
+    }
+    if (line_ctx->cursor_index == 0)
+    {
+        goto done;
+    }
+    if (line_ctx->cursor_index == line_ctx->line_length)
+    {
+        first_char = line_ctx->buffer[line_ctx->cursor_index - 2];
+        second_char = line_ctx->buffer[line_ctx->cursor_index - 1];
+        columns_to_move_left = 2;
+    }
+    else
+    {
+        first_char = line_ctx->buffer[line_ctx->cursor_index - 1];
+        second_char = line_ctx->buffer[line_ctx->cursor_index];
+        columns_to_move_left = 1;
+    }
+
+    move_cursor_left_n_columns(line_ctx, columns_to_move_left);
+    write_char(line_ctx, second_char, false, true);
+    write_char(line_ctx, first_char, false, true); 
+
+done:
+    return;
+}
+
 static void handle_tab(readline_st * const readline_ctx)
 {
     /* Word completion isn't performed if the user has requested 
@@ -41,6 +77,9 @@ readline_status_t handle_control_char(readline_st * const readline_ctx, int cons
             break;
         case '\n': /* ENTER */
             status = handle_enter(readline_ctx);
+            break;
+        case CTL('T'):
+            handle_control_t(readline_ctx); 
             break;
         case CTL('C'):
             status = readline_status_ctrl_c;
