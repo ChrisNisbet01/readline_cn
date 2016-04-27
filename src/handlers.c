@@ -307,23 +307,39 @@ static readline_status_t handle_escape_left_bracket(readline_st * const readline
             handle_escape_left_bracket_1(readline_ctx);
             break;
         case '2':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
             handle_insert_key(readline_ctx);
             break;
         case '3':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
-            handle_delete(readline_ctx);
+        {
+            int ch = '\0';
+
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+            if (ch == '~')
+            {
+                handle_delete(readline_ctx);
+            }
+            else if (ch == ';')
+            {
+                tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+                if (ch == '5')
+                {
+                    tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
+                    /* CTRL-DEL */
+                }
+            }
             break;
+        }
         case '4':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
             handle_end_key(readline_ctx);
             break;
         case '5':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
             // TODO: handle_page_up(readline_ctx);
             break;
         case '6':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);  /* this sequence includes a trailing '~' char */
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
             // TODO: handle_page_down(readline_ctx);
             break;
         case 'A':
