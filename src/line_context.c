@@ -150,11 +150,42 @@ done:
     return char_was_written;
 }
 
+static void delete_physical_line_from_cursor_to_end(line_context_st * const line_ctx)
+{
+    size_t screen_cursor_row;
+    size_t rows_left_to_move = line_ctx->screen_cursor_index;
+    size_t rows_to_move_up;
+    size_t columns_to_move_right;
+
+    delete_to_end_of_line(line_ctx->terminal_fd);
+    /* Must also remove any other lines below this one. */
+
+    for (screen_cursor_row = (line_ctx->screen_cursor_row + 1);
+         screen_cursor_row < line_ctx->num_rows;
+         screen_cursor_row++)
+    {
+        move_physical_cursor_down(line_ctx->terminal_fd, 1);
+        if (rows_left_to_move > 0)
+        {
+            move_physical_cursor_left(line_ctx->terminal_fd, line_ctx->screen_cursor_index);
+            rows_left_to_move = 0;
+        }
+        delete_to_end_of_line(line_ctx->terminal_fd);
+    }
+    rows_to_move_up = line_ctx->num_rows - line_ctx->screen_cursor_row - 1;
+    columns_to_move_right = line_ctx->screen_cursor_index - rows_left_to_move;
+
+    move_physical_cursor_up(line_ctx->terminal_fd, rows_to_move_up);
+    move_physical_cursor_right(line_ctx->terminal_fd, columns_to_move_right);
+
+}
+
 static void delete_line_from_cursor_to_end(line_context_st * const line_ctx)
 {
-    delete_to_end_of_line(line_ctx->terminal_fd);
     line_ctx->line_length = line_ctx->cursor_index;
-    line_ctx->buffer[line_ctx->line_length] = '\0';
+    line_ctx->buffer[line_ctx->line_length] = '\0'; 
+
+    delete_physical_line_from_cursor_to_end(line_ctx);
 }
 
 static void print_current_edit_line(line_context_st * const line_ctx)

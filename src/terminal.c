@@ -187,12 +187,16 @@ size_t get_terminal_width(int const out_fd)
 static bool move_physical_cursor(int const out_fd, size_t const amount_to_move, char const direction)
 {
     bool cursor_moved;
-    char buffer[20];
 
-    snprintf(buffer, sizeof buffer, "\033[%zu%c", amount_to_move, direction);
+    if (amount_to_move > 0)
+    {
+        char buffer[20];
 
-    // TODO: check for write error
-    tty_puts(out_fd, buffer, '\0');
+        snprintf(buffer, sizeof buffer, "\033[%zu%c", amount_to_move, direction);
+
+        // TODO: check for write error
+        tty_puts(out_fd, buffer, '\0');
+    }
     cursor_moved = true;
 
     return cursor_moved;
