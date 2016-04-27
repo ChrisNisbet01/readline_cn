@@ -106,11 +106,16 @@ void move_terminal_cursor_left_n_columns(line_context_st * const line_ctx, size_
     }
 }
 
-void terminal_init(terminal_st * const terminal, int const out_fd, size_t const terminal_width)
+void terminal_cursor_reset_cursor(terminal_cursor_st * const terminal_cursor)
 {
-    terminal->out_fd = out_fd;
-    terminal->width = terminal_width;
-    terminal->num_rows = 1;
-    terminal->cursor_row = 0;
-    terminal->cursor_column = 0;
+    terminal_cursor->row = 0;
+    terminal_cursor->column = 0;
+}
+
+void terminal_cursor_init(terminal_cursor_st * const terminal_cursor, int const terminal_fd, size_t const terminal_width)
+{
+    terminal_cursor->terminal_fd = terminal_fd;
+    terminal_cursor->terminal_width = terminal_width;
+    terminal_cursor->num_rows = 1;
+    terminal_cursor_reset_cursor(terminal_cursor);
 }

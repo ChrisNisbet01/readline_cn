@@ -9,7 +9,9 @@
 
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
 
-/* write a char at the current cursor position. */
+/* Write a char at the current cursor position to the 
+ * terminal. 
+ */
 static void terminal_write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode)
 {
     char const char_to_write = line_ctx->mask_character != '\0' ? line_ctx->mask_character : ch;
@@ -26,30 +28,42 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
         {
             size_t const original_screen_cursor_row = line_ctx->screen_cursor_row;
             size_t const original_screen_cursor_index = line_ctx->screen_cursor_index;
+            size_t new_screen_cursor_row;
+            size_t new_screen_cursor_index; 
 
             screen_puts(line_ctx, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
 
             /* Move the cursor back to where it was before we output the 
              * trailing chars. 
              */
-            if (line_ctx->screen_cursor_row != original_screen_cursor_row)
+            new_screen_cursor_row = line_ctx->screen_cursor_row;
+            new_screen_cursor_index = line_ctx->screen_cursor_index;
+
+            if (new_screen_cursor_row > original_screen_cursor_row)
             {
-                move_physical_cursor_up(line_ctx->terminal_fd, line_ctx->screen_cursor_row - original_screen_cursor_row);
-                line_ctx->screen_cursor_row = original_screen_cursor_row;
+                size_t const rows_to_move_up = new_screen_cursor_row - original_screen_cursor_row;
+
+                move_physical_cursor_up(line_ctx->terminal_fd, rows_to_move_up);
+                line_ctx->screen_cursor_row -= rows_to_move_up;
             }
-            if (line_ctx->screen_cursor_index != original_screen_cursor_index)
+            if (new_screen_cursor_index != original_screen_cursor_index)
             {
-                if (line_ctx->screen_cursor_index > original_screen_cursor_index)
+                if (new_screen_cursor_index > original_screen_cursor_index)
                 {
-                    move_physical_cursor_left(line_ctx->terminal_fd, 
-                                              line_ctx->screen_cursor_index - original_screen_cursor_index);
+                    size_t const columns_to_move = new_screen_cursor_index - original_screen_cursor_index;
+
+                    move_physical_cursor_left(line_ctx->terminal_fd,
+                                              columns_to_move);
+                    line_ctx->screen_cursor_index -= columns_to_move;
                 }
                 else
                 {
+                    size_t const columns_to_move = original_screen_cursor_index - new_screen_cursor_index;
+
                     move_physical_cursor_right(line_ctx->terminal_fd,
-                                               original_screen_cursor_index - line_ctx->screen_cursor_index);
+                                               columns_to_move);
+                    line_ctx->screen_cursor_index += columns_to_move;
                 }
-                line_ctx->screen_cursor_index = original_screen_cursor_index;
             }
         }
     }
@@ -225,6 +239,8 @@ bool line_context_init(line_context_st * const line_context,
 
     line_context->mask_character = mask_character;
     line_context->prompt = prompt;
+
+    terminal_cursor_init(&line_context->terminal_cursor, line_context->terminal_fd, line_context->terminal_width);
 
     init_ok = true;
 

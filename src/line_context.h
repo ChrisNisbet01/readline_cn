@@ -4,6 +4,16 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+typedef struct terminal_cursor_st terminal_cursor_st;
+struct terminal_cursor_st
+{
+    int terminal_fd; /* The file descriptor to write to when updating the terminal. */
+    size_t terminal_width;
+    size_t row;
+    size_t column;
+    size_t num_rows; /* The number of rows on the terminal the line occupies. */
+}; 
+
 typedef struct line_context_st line_context_st;
 struct line_context_st
 {
@@ -20,7 +30,9 @@ struct line_context_st
     size_t num_rows; /* The number of rows on the terminal the line occupies. */
     int mask_character; /* if non-zero, the character to write to the terminal instead of the actual character entered. */
     char const * prompt;
-}; 
+
+    terminal_cursor_st terminal_cursor;
+};
 
 bool line_context_init(line_context_st * const line_context,
                        size_t const initial_size, 
