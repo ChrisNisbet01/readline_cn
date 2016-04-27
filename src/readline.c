@@ -108,7 +108,12 @@ static readline_status_t edit_input(readline_st * const readline_ctx)
 
     if (readline_ctx->is_a_terminal)
     {
-        tty_puts(readline_ctx->out_fd, readline_ctx->prompt, '\0');
+        line_context_st * const line_ctx = &readline_ctx->line_context;
+
+        tty_puts(line_ctx->terminal_fd, line_ctx->prompt, '\0');
+        /* set the initial terminal cursor position. */
+        line_ctx->terminal_cursor_index = strlen(line_ctx->prompt);
+        line_ctx->cursor_row = 0;
     }
 
     do
@@ -120,32 +125,45 @@ static readline_status_t edit_input(readline_st * const readline_ctx)
     return status;
 }
 
-static bool readline_init(readline_st * const readline_ctx)
+static bool readline_init(readline_st * const readline_ctx, 
+                          char const * const prompt, 
+                          size_t const timeout_seconds)
 {
     bool readline_prepared;
     line_context_st * const line_ctx = &readline_ctx->line_context;
+    size_t terminal_width;
+
+    readline_ctx->maximum_seconds_to_wait_for_char = timeout_seconds;
+
+    readline_ctx->terminal_was_modified = false;
+    if (readline_ctx->is_a_terminal)
+    {
+        terminal_width = get_terminal_width(readline_ctx->out_fd);
+
+        history_reset(readline_ctx->history);
+
+        prepare_terminal(&readline_ctx->previous_terminal_settings);
+        readline_ctx->terminal_was_modified = true;
+    }
+    else
+    {
+        terminal_width = 0;
+    }
+
+    free_saved_line(&readline_ctx->saved_line); 
 
     if (!line_context_init(line_ctx,
                            INITIAL_LINE_BUFFER_SIZE,
                            LINE_BUFFER_SIZE_INCREMENT,
                            readline_ctx->maximum_line_length,
                            readline_ctx->out_fd,
-                           readline_ctx->mask_character))
+                           terminal_width,
+                           readline_ctx->mask_character,
+                           prompt))
     {
         readline_prepared = false;
         goto done;
     }
-
-    if (readline_ctx->is_a_terminal)
-    {
-        readline_ctx->terminal_width = get_terminal_width(readline_ctx->out_fd);
-
-        history_reset(readline_ctx->history);
-
-        prepare_terminal(&readline_ctx->previous_terminal_settings);
-    }
-
-    free_saved_line(&readline_ctx->saved_line);
 
     readline_prepared = true;
 
@@ -157,7 +175,7 @@ static void readline_cleanup(readline_st * const readline_ctx)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;
 
-    if (readline_ctx->is_a_terminal)
+    if (readline_ctx->terminal_was_modified)
     {
         restore_terminal(&readline_ctx->previous_terminal_settings);
     }
@@ -173,10 +191,7 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
     line_context_st * const line_ctx = &readline_ctx->line_context;
     bool should_return_line = false;
 
-    readline_ctx->maximum_seconds_to_wait_for_char = timeout_seconds;
-    readline_ctx->prompt = prompt; 
-
-    if (!readline_init(readline_ctx))
+    if (!readline_init(readline_ctx, prompt, timeout_seconds))
     {
         readline_result = readline_result_error;
         goto done;
@@ -213,6 +228,7 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
             break;
     }
 
+done:
     if (should_return_line)
     {
         bool const should_add_to_history = readline_ctx->history_enabled &&
@@ -233,7 +249,6 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
 
     readline_cleanup(readline_ctx);
 
-done:
     return readline_result;
 }
 

@@ -117,14 +117,15 @@ static void private_help_context_process_results(private_help_context_st * const
                                                        readline_st * const readline_ctx,
                                                        bool const characters_were_printed)
 {
-    line_context_st * const line_ctx = &readline_ctx->line_context;
     bool need_to_redisplay_line;
 
     need_to_redisplay_line = characters_were_printed;
 
     if (need_to_redisplay_line)
     {
-        redisplay_line(line_ctx, readline_ctx->prompt);
+        line_context_st * const line_ctx = &readline_ctx->line_context;
+
+        redisplay_line(line_ctx);
     }
 }
 

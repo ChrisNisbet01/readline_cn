@@ -12,10 +12,9 @@ struct readline_st
     int out_fd;
     int in_fd;
     bool is_a_terminal;
+    bool terminal_was_modified;
     unsigned int maximum_seconds_to_wait_for_char;
-    int terminal_width;
     struct termios previous_terminal_settings;
-    char const * prompt;
     int mask_character; /* if non-zero, the terminal writes out this character rather than the actual character. */
     char const * field_separators;
     size_t maximum_line_length;

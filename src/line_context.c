@@ -14,6 +14,14 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
     char const char_to_write = line_ctx->mask_character != '\0' ? line_ctx->mask_character : ch;
 
     tty_put(line_ctx->terminal_fd, char_to_write);
+    line_ctx->terminal_cursor_index++;
+    if (line_ctx->terminal_cursor_index == line_ctx->terminal_width)
+    {
+        tty_put(line_ctx->terminal_fd, '\n');
+        line_ctx->terminal_cursor_index = 0;
+        line_ctx->cursor_row++;
+        line_ctx->num_rows = line_ctx->cursor_row + 1;
+    }
     /* if in insert mode, any chars after the one just pushed in 
      * will need to be written out.
      */
@@ -23,11 +31,47 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
 
         if (trailing_length > 0)
         {
-            tty_puts(line_ctx->terminal_fd, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
+            size_t const original_terminal_row = line_ctx->cursor_row;
+            size_t const original_terminal_cursor_index = line_ctx->terminal_cursor_index;
+            char const * ptrailing;
+
+            for (ptrailing = &line_ctx->buffer[line_ctx->cursor_index]; *ptrailing != '\0'; ptrailing++)
+            {
+                char const char_to_put = (line_ctx->mask_character != '\0') ? line_ctx->mask_character : *ptrailing;
+
+                tty_put(line_ctx->terminal_fd, char_to_put);
+                line_ctx->terminal_cursor_index++;
+                if (line_ctx->terminal_cursor_index == line_ctx->terminal_width)
+                {
+                    tty_put(line_ctx->terminal_fd, '\n');
+                    line_ctx->terminal_cursor_index = 0;
+                    line_ctx->cursor_row++;
+                    line_ctx->num_rows = line_ctx->cursor_row + 1;
+                }
+            }
+
             /* Move the cursor back to where it was before we output the 
              * trailing chars. 
              */
-            move_physical_cursor_left(line_ctx->terminal_fd, trailing_length);
+            if (line_ctx->cursor_row != original_terminal_row)
+            {
+                move_physical_cursor_up(line_ctx->terminal_fd, line_ctx->cursor_row - original_terminal_row);
+                line_ctx->cursor_row = original_terminal_row;
+            }
+            if (line_ctx->terminal_cursor_index != original_terminal_cursor_index)
+            {
+                if (line_ctx->terminal_cursor_index > original_terminal_cursor_index)
+                {
+                    move_physical_cursor_left(line_ctx->terminal_fd, 
+                                              line_ctx->terminal_cursor_index - original_terminal_cursor_index);
+                }
+                else
+                {
+                    move_physical_cursor_right(line_ctx->terminal_fd,
+                                               original_terminal_cursor_index - line_ctx->terminal_cursor_index);
+                }
+                line_ctx->terminal_cursor_index = original_terminal_cursor_index;
+            }
         }
     }
 }
@@ -126,12 +170,12 @@ static void restore_cursor_position(line_context_st * const line_ctx, size_t con
     }
 }
 
-void redisplay_line(line_context_st * const line_ctx, char const * const prompt)
+void redisplay_line(line_context_st * const line_ctx)
 {
     size_t const original_cursor_index = line_ctx->cursor_index;
 
     tty_put(line_ctx->terminal_fd, '\n');
-    tty_puts(line_ctx->terminal_fd, prompt, '\0');
+    tty_puts(line_ctx->terminal_fd, line_ctx->prompt, '\0');
     print_current_edit_line(line_ctx);
     restore_cursor_position(line_ctx, original_cursor_index);
 }
@@ -139,9 +183,11 @@ void redisplay_line(line_context_st * const line_ctx, char const * const prompt)
 bool line_context_init(line_context_st * const line_context,
                        size_t const initial_size, 
                        size_t const size_increment,
-                       size_t maximum_line_length,
+                       size_t const maximum_line_length,
                        int const terminal_fd,
-                       int const mask_character)
+                       size_t const terminal_width,
+                       int const mask_character,
+                       char const * const prompt)
 {
     bool init_ok;
 
@@ -162,7 +208,13 @@ bool line_context_init(line_context_st * const line_context,
     line_context->buffer[0] = '\0';
 
     line_context->terminal_fd = terminal_fd;
+    line_context->terminal_cursor_index = 0;
+    line_context->cursor_row = 0;
+    line_context->terminal_width = terminal_width;
+    line_context->num_rows = 1;
+
     line_context->mask_character = mask_character;
+    line_context->prompt = prompt;
 
     init_ok = true;
 

@@ -167,14 +167,14 @@ void restore_terminal(struct termios * const previous_terminal_settings)
     }
 }
 
-int get_terminal_width(int const out_fd)
+size_t get_terminal_width(int const out_fd)
 {
     struct winsize window;
     int width;
 
     if (ioctl(out_fd, TIOCGWINSZ, &window) >= 0 && window.ws_col > 0 && window.ws_row > 0)
     {
-        width = (int)window.ws_col;
+        width = (size_t)window.ws_col;
     }
     else
     {
@@ -184,12 +184,12 @@ int get_terminal_width(int const out_fd)
     return width;
 }
 
-bool move_physical_cursor_right(int const out_fd, size_t columns)
+static bool move_physical_cursor(int const out_fd, size_t const amount_to_move, char const direction)
 {
     bool cursor_moved;
     char buffer[20];
 
-    snprintf(buffer, sizeof buffer, "\033[%zuC", columns);
+    snprintf(buffer, sizeof buffer, "\033[%zu%c", amount_to_move, direction);
 
     // TODO: check for write error
     tty_puts(out_fd, buffer, '\0');
@@ -198,18 +198,24 @@ bool move_physical_cursor_right(int const out_fd, size_t columns)
     return cursor_moved;
 }
 
-bool move_physical_cursor_left(int const out_fd, size_t columns)
+bool move_physical_cursor_right(int const out_fd, size_t const columns)
 {
-    bool cursor_moved;
-    char buffer[20];
+    return move_physical_cursor(out_fd, columns, 'C');
+}
 
-    snprintf(buffer, sizeof buffer, "\033[%zuD", columns);
+bool move_physical_cursor_left(int const out_fd, size_t const columns)
+{
+    return move_physical_cursor(out_fd, columns, 'D');
+}
 
-    // TODO: check for write error
-    tty_puts(out_fd, buffer, '\0');
-    cursor_moved = true;
+bool move_physical_cursor_up(int const out_fd, size_t const rows)
+{
+    return move_physical_cursor(out_fd, rows, 'A');
+}
 
-    return cursor_moved;
+bool move_physical_cursor_down(int const out_fd, size_t const rows)
+{
+    return move_physical_cursor(out_fd, rows, 'B');
 }
 
 void delete_to_end_of_line(int const out_fd)

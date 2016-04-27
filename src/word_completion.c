@@ -166,8 +166,8 @@ static void private_completion_context_teardown(private_completion_context_st * 
     private_completion_context->tokens = NULL;
 }
 
-static bool private_completion_context_init(private_completion_context_st * const private_completion_context, 
-                                            line_context_st * const line_ctx,
+static bool private_completion_context_init(line_context_st * const line_ctx,
+                                            private_completion_context_st * const private_completion_context,
                                             char const * const field_separators)
 {
     completion_context_st * const completion_context = &private_completion_context->public_context;
@@ -231,10 +231,9 @@ static void process_unique_match(private_completion_context_st * const private_c
     }
 }
 
-static bool process_multiple_matches(private_completion_context_st * const private_completion_context,
-                                     readline_st * const readline_ctx)
+static bool process_multiple_matches(line_context_st * const line_ctx,
+                                     private_completion_context_st * const private_completion_context)
 {
-    line_context_st * const line_ctx = &readline_ctx->line_context;
     bool need_to_redisplay_line;
 
     /* The line will need to be redisplayed if any possible options 
@@ -260,8 +259,8 @@ static bool process_multiple_matches(private_completion_context_st * const priva
             qsort(private_completion_context->possible_words->argv,
                   private_completion_context->possible_words->argc, sizeof( *private_completion_context->possible_words->argv),
                   qsort_string_compare);
-            print_words_in_columns(readline_ctx->out_fd,
-                                   readline_ctx->terminal_width,
+            print_words_in_columns(line_ctx->terminal_fd,
+                                   line_ctx->terminal_width,
                                    private_completion_context->possible_words->argc,
                                    private_completion_context->possible_words->argv);
             need_to_redisplay_line = true;
@@ -282,11 +281,10 @@ static bool process_multiple_matches(private_completion_context_st * const priva
     return need_to_redisplay_line;
 }
 
-static void private_completion_context_process_results(private_completion_context_st * const private_completion_context,
-                                                       readline_st * const readline_ctx,
+static void private_completion_context_process_results(line_context_st * const line_ctx,
+                                                       private_completion_context_st * const private_completion_context,
                                                        bool const characters_were_printed)
 {
-    line_context_st * const line_ctx = &readline_ctx->line_context;
     bool need_to_redisplay_line;
 
     if (private_completion_context->unique_match != NULL)
@@ -296,7 +294,7 @@ static void private_completion_context_process_results(private_completion_contex
     }
     else
     {
-        need_to_redisplay_line = process_multiple_matches(private_completion_context, readline_ctx);
+        need_to_redisplay_line = process_multiple_matches(line_ctx, private_completion_context);
     }
 
     if (characters_were_printed)
@@ -306,7 +304,7 @@ static void private_completion_context_process_results(private_completion_contex
 
     if (need_to_redisplay_line)
     {
-        redisplay_line(line_ctx, readline_ctx->prompt);
+        redisplay_line(line_ctx);
     }
 }
 
@@ -319,7 +317,9 @@ void do_word_completion(readline_st * const readline_ctx)
         line_context_st * const line_ctx = &readline_ctx->line_context;
         private_completion_context_st private_completion_context;
 
-        if (!private_completion_context_init(&private_completion_context, line_ctx, readline_ctx->field_separators))
+        if (!private_completion_context_init(line_ctx,
+                                             &private_completion_context,
+                                             readline_ctx->field_separators))
         {
             goto done;
         }
@@ -327,7 +327,9 @@ void do_word_completion(readline_st * const readline_ctx)
         characters_were_printed = readline_ctx->completion_callback(&private_completion_context.public_context,
                                           readline_ctx->user_context);
 
-        private_completion_context_process_results(&private_completion_context, readline_ctx, characters_were_printed > 0);
+        private_completion_context_process_results(line_ctx,
+                                                   &private_completion_context,
+                                                   characters_were_printed > 0);
 
         private_completion_context_teardown(&private_completion_context);
     }
