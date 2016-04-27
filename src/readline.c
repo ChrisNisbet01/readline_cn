@@ -8,6 +8,7 @@
 #include "readline_status.h"
 #include "read_char.h"
 #include "handlers.h"
+#include "screen.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -110,10 +111,7 @@ static readline_status_t edit_input(readline_st * const readline_ctx)
     {
         line_context_st * const line_ctx = &readline_ctx->line_context;
 
-        tty_puts(line_ctx->terminal_fd, line_ctx->prompt, '\0');
-        /* set the initial screen cursor position. */
-        line_ctx->screen_cursor_index = strlen(line_ctx->prompt);
-        line_ctx->screen_cursor_row = 0;
+        screen_puts(line_ctx, line_ctx->prompt, '\0');
     }
 
     do

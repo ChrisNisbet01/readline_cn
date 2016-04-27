@@ -17,7 +17,8 @@ libreadline_cn_la_SOURCES = readline.c \
 						history.c \
 						history_entries.c \
 						handlers.c \
-						read_char.c
+						read_char.c \
+						screen.c
 						
 libreadline_cn_la_CFLAGS = -D_GNU_SOURCE -Wall -Werror -Wno-unused-result
 SUBDIRS = tests

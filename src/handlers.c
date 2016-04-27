@@ -6,9 +6,15 @@
 
 #include <string.h>
 
-static readline_status_t handle_enter(readline_st const * const readline_ctx)
+static readline_status_t handle_enter(readline_st * const readline_ctx)
 {
-    tty_put(readline_ctx->out_fd, '\n');
+    line_context_st * const line_ctx = &readline_ctx->line_context;
+
+    /* Move the cursor to the end of the line so that any output 
+     * from the application will go after this line. 
+     */
+    move_cursor_right_n_columns(line_ctx, line_ctx->line_length - line_ctx->cursor_index);    
+    tty_put(line_ctx->terminal_fd, '\n');
 
     return readline_status_done;
 }

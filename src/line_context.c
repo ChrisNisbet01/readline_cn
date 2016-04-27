@@ -1,5 +1,6 @@
 #include "line_context.h"
 #include "terminal.h"
+#include "screen.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -7,23 +8,14 @@
 #include <ctype.h>
 
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
-#define MAX(x,y) ((x) > (y) ? (x) : (y))
 
 /* write a char at the current cursor position. */
 static void terminal_write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode)
 {
     char const char_to_write = line_ctx->mask_character != '\0' ? line_ctx->mask_character : ch;
 
-    tty_put(line_ctx->terminal_fd, char_to_write);
-    line_ctx->screen_cursor_index++;
-    if (line_ctx->screen_cursor_index == line_ctx->terminal_width)
-    {
-        tty_put(line_ctx->terminal_fd, '\n');
-        line_ctx->screen_cursor_index = 0;
-        line_ctx->screen_cursor_row++;
-        line_ctx->num_rows = MAX(line_ctx->num_rows, line_ctx->screen_cursor_row + 1);
-    }
-    /* if in insert mode, any chars after the one just pushed in 
+    screen_put(line_ctx, char_to_write);
+    /* if in insert mode, any chars after the one just written
      * will need to be written out.
      */
     if (insert_mode)
@@ -34,22 +26,8 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
         {
             size_t const original_screen_cursor_row = line_ctx->screen_cursor_row;
             size_t const original_screen_cursor_index = line_ctx->screen_cursor_index;
-            char const * ptrailing;
 
-            for (ptrailing = &line_ctx->buffer[line_ctx->cursor_index]; *ptrailing != '\0'; ptrailing++)
-            {
-                char const char_to_put = (line_ctx->mask_character != '\0') ? line_ctx->mask_character : *ptrailing;
-
-                tty_put(line_ctx->terminal_fd, char_to_put);
-                line_ctx->screen_cursor_index++;
-                if (line_ctx->screen_cursor_index == line_ctx->terminal_width)
-                {
-                    tty_put(line_ctx->terminal_fd, '\n');
-                    line_ctx->screen_cursor_index = 0;
-                    line_ctx->screen_cursor_row++;
-                    line_ctx->num_rows = line_ctx->screen_cursor_row + 1;
-                }
-            }
+            screen_puts(line_ctx, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
 
             /* Move the cursor back to where it was before we output the 
              * trailing chars. 
@@ -188,12 +166,6 @@ static void delete_line_from_cursor_to_end(line_context_st * const line_ctx)
     delete_physical_line_from_cursor_to_end(line_ctx);
 }
 
-static void print_current_edit_line(line_context_st * const line_ctx)
-{
-    tty_puts(line_ctx->terminal_fd, line_ctx->buffer, '\0');
-    line_ctx->cursor_index = strlen(line_ctx->buffer);
-}
-
 static void restore_cursor_position(line_context_st * const line_ctx, size_t const original_cursor_position)
 {
     if (line_ctx->cursor_index > original_cursor_position)
@@ -207,8 +179,13 @@ void redisplay_line(line_context_st * const line_ctx)
     size_t const original_cursor_index = line_ctx->cursor_index;
 
     tty_put(line_ctx->terminal_fd, '\n');
-    tty_puts(line_ctx->terminal_fd, line_ctx->prompt, '\0');
-    print_current_edit_line(line_ctx);
+
+    line_ctx->screen_cursor_index = 0;
+    line_ctx->screen_cursor_row = 0;
+    screen_puts(line_ctx, line_ctx->prompt, '\0');
+
+    screen_puts(line_ctx, line_ctx->buffer, line_ctx->mask_character);
+    line_ctx->cursor_index = strlen(line_ctx->buffer);
     restore_cursor_position(line_ctx, original_cursor_index);
 }
 
@@ -234,14 +211,16 @@ bool line_context_init(line_context_st * const line_context,
         init_ok = false;
         goto done;
     }
-    line_context->line_length = 0;
-    line_context->maximum_line_length = maximum_line_length;
-    line_context->cursor_index = 0;
-    line_context->buffer[0] = '\0';
-
     line_context->terminal_fd = terminal_fd;
+    line_context->line_length = 0;
+    line_context->buffer[line_context->line_length] = '\0';
+    line_context->maximum_line_length = maximum_line_length;
+
+    line_context->cursor_index = 0;
+    /* set the initial screen cursor position. */
     line_context->screen_cursor_index = 0;
     line_context->screen_cursor_row = 0;
+
     line_context->terminal_width = terminal_width;
     line_context->num_rows = 1;
 
@@ -369,33 +348,6 @@ void replace_edit_line(line_context_st * const line_ctx, char const * const repl
     write_string(line_ctx, replacement, true, true);
 }
 
-static void screen_put(line_context_st * const line_ctx, char const ch)
-{
-    tty_put(line_ctx->terminal_fd, ch);
-    line_ctx->screen_cursor_index++;
-    if (line_ctx->screen_cursor_index == line_ctx->terminal_width)
-    {
-        tty_put(line_ctx->terminal_fd, '\n');
-        line_ctx->screen_cursor_index = 0;
-        line_ctx->screen_cursor_row++;
-        line_ctx->num_rows = MAX(line_ctx->num_rows, line_ctx->screen_cursor_row + 1);
-    }
-}
-
-static void screen_puts(line_context_st * const line_ctx, char const * const string)
-{
-    char const * p = string;
-
-    while (*p != '\0')
-    {
-        char const char_to_put = (line_ctx->mask_character != '\0') ? line_ctx->mask_character : *p;
-
-        screen_put(line_ctx, char_to_put);
-        p++;
-    }
-}
-
-
 void delete_char_to_the_right(line_context_st * const line_ctx, bool const update_display)
 {
     if (line_ctx->cursor_index < line_ctx->line_length)
@@ -408,7 +360,7 @@ void delete_char_to_the_right(line_context_st * const line_ctx, bool const updat
 
         if (update_display)
         {
-            screen_puts(line_ctx, &line_ctx->buffer[line_ctx->cursor_index]);
+            screen_puts(line_ctx, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
             /* Remove the remaining char from the end of the line by 
              * replacing it with a space. 
              */
