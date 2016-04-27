@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <ctype.h>
 
+static void restore_cursor_position(line_context_st * const line_ctx, size_t const original_cursor_position);
+
 /* Write a char at the current cursor position to the 
  * terminal. 
  */
@@ -26,45 +28,17 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
 
         if (trailing_length > 0)
         {
-            size_t const original_screen_cursor_row = terminal_cursor->row;
-            size_t const original_screen_cursor_index = terminal_cursor->column;
-            size_t new_screen_cursor_row;
-            size_t new_screen_cursor_index; 
+            size_t const original_cursor_index = line_ctx->cursor_index;
 
             terminal_puts(terminal_cursor, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
-
-            /* Move the cursor back to where it was before we output the 
-             * trailing chars. 
+            /* Update the current edit position to match the physical 
+             * cursor position. 
              */
-            new_screen_cursor_row = terminal_cursor->row;
-            new_screen_cursor_index = terminal_cursor->column;
-
-            if (new_screen_cursor_row > original_screen_cursor_row)
-            {
-                size_t const rows_to_move_up = new_screen_cursor_row - original_screen_cursor_row;
-
-                move_physical_cursor_up(terminal_cursor->terminal_fd, rows_to_move_up);
-                terminal_cursor->row -= rows_to_move_up;
-            }
-            if (new_screen_cursor_index != original_screen_cursor_index)
-            {
-                if (new_screen_cursor_index > original_screen_cursor_index)
-                {
-                    size_t const columns_to_move = new_screen_cursor_index - original_screen_cursor_index;
-
-                    move_physical_cursor_left(terminal_cursor->terminal_fd,
-                                              columns_to_move);
-                    terminal_cursor->column -= columns_to_move;
-                }
-                else
-                {
-                    size_t const columns_to_move = original_screen_cursor_index - new_screen_cursor_index;
-
-                    move_physical_cursor_right(terminal_cursor->terminal_fd,
-                                               columns_to_move);
-                    terminal_cursor->column += columns_to_move;
-                }
-            }
+            line_ctx->cursor_index = strlen(line_ctx->buffer); 
+            /* And now restore edit position and cursor back to the original
+             * editing location. 
+             */
+            restore_cursor_position(line_ctx, original_cursor_index);
         }
     }
 }
