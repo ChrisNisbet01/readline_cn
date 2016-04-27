@@ -220,9 +220,8 @@ bool line_context_init(line_context_st * const line_context,
     /* set the initial screen cursor position. */
     line_context->screen_cursor_index = 0;
     line_context->screen_cursor_row = 0;
-
+    line_context->num_rows = 1; 
     line_context->terminal_width = terminal_width;
-    line_context->num_rows = 1;
 
     line_context->mask_character = mask_character;
     line_context->prompt = prompt;
@@ -246,81 +245,10 @@ void move_cursor_right_n_columns(line_context_st * const line_ctx, size_t column
 
     if (columns_to_move > 0)
     {
-        size_t const original_terminal_cursor_index = line_ctx->screen_cursor_index;
-        size_t new_terminal_cursor_index;
-        size_t rows_to_move;
-
         line_ctx->cursor_index += columns_to_move; 
 
-        /* Update the physical cursor. */
-        rows_to_move = (line_ctx->screen_cursor_index + columns_to_move) / line_ctx->terminal_width;
-        new_terminal_cursor_index = (line_ctx->screen_cursor_index + columns_to_move) % line_ctx->terminal_width;
+        move_terminal_cursor_right_n_columns(line_ctx, columns_to_move);
 
-        line_ctx->screen_cursor_index = new_terminal_cursor_index;
-        line_ctx->screen_cursor_row += rows_to_move;
-
-        /* Update the physical cursor row. */
-        if (rows_to_move > 0)
-        {
-            move_physical_cursor_down(line_ctx->terminal_fd, rows_to_move);
-        }
-        /* Update the physical cursor column */
-        if (line_ctx->screen_cursor_index > original_terminal_cursor_index)
-        {
-            size_t const chars_to_move = line_ctx->screen_cursor_index - original_terminal_cursor_index;
-
-            move_physical_cursor_right(line_ctx->terminal_fd, chars_to_move);
-        }
-        else if (line_ctx->screen_cursor_index < original_terminal_cursor_index)
-        {
-            size_t const chars_to_move = original_terminal_cursor_index - line_ctx->screen_cursor_index;
-
-            move_physical_cursor_left(line_ctx->terminal_fd, chars_to_move);
-        }
-    }
-}
-
-static void move_physical_cursor_left_n_columns(line_context_st * const line_ctx, size_t const columns)
-{
-    size_t const original_screen_cursor_index = line_ctx->screen_cursor_index;
-    size_t new_screen_cursor_index;
-    size_t rows_to_move;
-    size_t columns_to_move = columns;
-
-    /* Update the physical cursor. */
-    rows_to_move = columns_to_move / line_ctx->terminal_width;
-    columns_to_move %= line_ctx->terminal_width;
-
-    if (line_ctx->screen_cursor_index >= columns_to_move)
-    {
-        new_screen_cursor_index = line_ctx->screen_cursor_index - columns_to_move;
-    }
-    else
-    {
-        new_screen_cursor_index = line_ctx->screen_cursor_index + line_ctx->terminal_width - columns_to_move;
-        rows_to_move++;
-    }
-
-    line_ctx->screen_cursor_index = new_screen_cursor_index;
-    line_ctx->screen_cursor_row -= rows_to_move;
-
-    /* Update the physical cursor row. */
-    if (rows_to_move > 0)
-    {
-        move_physical_cursor_up(line_ctx->terminal_fd, rows_to_move);
-    }
-    /* Update the physical cursor column */
-    if (line_ctx->screen_cursor_index > original_screen_cursor_index)
-    {
-        size_t const chars_to_move = line_ctx->screen_cursor_index - original_screen_cursor_index;
-
-        move_physical_cursor_right(line_ctx->terminal_fd, chars_to_move);
-    }
-    else if (line_ctx->screen_cursor_index < original_screen_cursor_index)
-    {
-        size_t const chars_to_move = original_screen_cursor_index - line_ctx->screen_cursor_index;
-
-        move_physical_cursor_left(line_ctx->terminal_fd, chars_to_move);
     }
 }
 
@@ -332,7 +260,7 @@ void move_cursor_left_n_columns(line_context_st * const line_ctx, size_t const c
     {
         line_ctx->cursor_index -= columns_to_move;
 
-        move_physical_cursor_left_n_columns(line_ctx, columns_to_move);
+        move_terminal_cursor_left_n_columns(line_ctx, columns_to_move);
     }
 }
 
@@ -365,7 +293,7 @@ void delete_char_to_the_right(line_context_st * const line_ctx, bool const updat
              * replacing it with a space. 
              */
             screen_put(line_ctx, ' ');
-            move_physical_cursor_left_n_columns(line_ctx, trailing_chars);
+            move_terminal_cursor_left_n_columns(line_ctx, trailing_chars);
         }
     }
 }
