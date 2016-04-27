@@ -25,9 +25,6 @@ struct line_context_st
     size_t cursor_index; /* Location of the cursor in the line. */
     int terminal_fd; /* The file descriptor to write to when updating the terminal. */
     size_t terminal_width;
-    size_t screen_cursor_row; /* The (logical) row the cursor is on. */
-    size_t screen_cursor_index; /* Position of the cursor on the current row. */
-    size_t num_rows; /* The number of rows on the terminal the line occupies. */
     int mask_character; /* if non-zero, the character to write to the terminal instead of the actual character entered. */
     char const * prompt;
 

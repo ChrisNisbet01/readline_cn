@@ -26,8 +26,8 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
 
         if (trailing_length > 0)
         {
-            size_t const original_screen_cursor_row = line_ctx->screen_cursor_row;
-            size_t const original_screen_cursor_index = line_ctx->screen_cursor_index;
+            size_t const original_screen_cursor_row = line_ctx->terminal_cursor.row;
+            size_t const original_screen_cursor_index = line_ctx->terminal_cursor.column;
             size_t new_screen_cursor_row;
             size_t new_screen_cursor_index; 
 
@@ -36,15 +36,15 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
             /* Move the cursor back to where it was before we output the 
              * trailing chars. 
              */
-            new_screen_cursor_row = line_ctx->screen_cursor_row;
-            new_screen_cursor_index = line_ctx->screen_cursor_index;
+            new_screen_cursor_row = line_ctx->terminal_cursor.row;
+            new_screen_cursor_index = line_ctx->terminal_cursor.column;
 
             if (new_screen_cursor_row > original_screen_cursor_row)
             {
                 size_t const rows_to_move_up = new_screen_cursor_row - original_screen_cursor_row;
 
-                move_physical_cursor_up(line_ctx->terminal_fd, rows_to_move_up);
-                line_ctx->screen_cursor_row -= rows_to_move_up;
+                move_physical_cursor_up(line_ctx->terminal_cursor.terminal_fd, rows_to_move_up);
+                line_ctx->terminal_cursor.row -= rows_to_move_up;
             }
             if (new_screen_cursor_index != original_screen_cursor_index)
             {
@@ -52,17 +52,17 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
                 {
                     size_t const columns_to_move = new_screen_cursor_index - original_screen_cursor_index;
 
-                    move_physical_cursor_left(line_ctx->terminal_fd,
+                    move_physical_cursor_left(line_ctx->terminal_cursor.terminal_fd,
                                               columns_to_move);
-                    line_ctx->screen_cursor_index -= columns_to_move;
+                    line_ctx->terminal_cursor.column -= columns_to_move;
                 }
                 else
                 {
                     size_t const columns_to_move = original_screen_cursor_index - new_screen_cursor_index;
 
-                    move_physical_cursor_right(line_ctx->terminal_fd,
+                    move_physical_cursor_right(line_ctx->terminal_cursor.terminal_fd,
                                                columns_to_move);
-                    line_ctx->screen_cursor_index += columns_to_move;
+                    line_ctx->terminal_cursor.column += columns_to_move;
                 }
             }
         }
@@ -145,30 +145,30 @@ done:
 static void delete_physical_line_from_cursor_to_end(line_context_st * const line_ctx)
 {
     size_t screen_cursor_row;
-    size_t rows_left_to_move = line_ctx->screen_cursor_index;
+    size_t rows_left_to_move = line_ctx->terminal_cursor.column;
     size_t rows_to_move_up;
     size_t columns_to_move_right;
 
-    delete_to_end_of_line(line_ctx->terminal_fd);
+    delete_to_end_of_line(line_ctx->terminal_cursor.terminal_fd);
     /* Must also remove any other lines below this one. */
 
-    for (screen_cursor_row = (line_ctx->screen_cursor_row + 1);
-         screen_cursor_row < line_ctx->num_rows;
+    for (screen_cursor_row = (line_ctx->terminal_cursor.row + 1);
+         screen_cursor_row < line_ctx->terminal_cursor.num_rows;
          screen_cursor_row++)
     {
-        move_physical_cursor_down(line_ctx->terminal_fd, 1);
+        move_physical_cursor_down(line_ctx->terminal_cursor.terminal_fd, 1);
         if (rows_left_to_move > 0)
         {
-            move_physical_cursor_left(line_ctx->terminal_fd, line_ctx->screen_cursor_index);
+            move_physical_cursor_left(line_ctx->terminal_cursor.terminal_fd, line_ctx->terminal_cursor.column);
             rows_left_to_move = 0;
         }
-        delete_to_end_of_line(line_ctx->terminal_fd);
+        delete_to_end_of_line(line_ctx->terminal_cursor.terminal_fd);
     }
-    rows_to_move_up = line_ctx->num_rows - line_ctx->screen_cursor_row - 1;
-    columns_to_move_right = line_ctx->screen_cursor_index - rows_left_to_move;
+    rows_to_move_up = line_ctx->terminal_cursor.num_rows - line_ctx->terminal_cursor.row - 1;
+    columns_to_move_right = line_ctx->terminal_cursor.column - rows_left_to_move;
 
-    move_physical_cursor_up(line_ctx->terminal_fd, rows_to_move_up);
-    move_physical_cursor_right(line_ctx->terminal_fd, columns_to_move_right);
+    move_physical_cursor_up(line_ctx->terminal_cursor.terminal_fd, rows_to_move_up);
+    move_physical_cursor_right(line_ctx->terminal_cursor.terminal_fd, columns_to_move_right);
 
 }
 
@@ -194,8 +194,8 @@ void redisplay_line(line_context_st * const line_ctx)
 
     tty_put(line_ctx->terminal_fd, '\n');
 
-    line_ctx->screen_cursor_index = 0;
-    line_ctx->screen_cursor_row = 0;
+    terminal_cursor_reset(&line_ctx->terminal_cursor);
+
     screen_puts(line_ctx, line_ctx->prompt, '\0');
 
     screen_puts(line_ctx, line_ctx->buffer, line_ctx->mask_character);
@@ -231,10 +231,7 @@ bool line_context_init(line_context_st * const line_context,
     line_context->maximum_line_length = maximum_line_length;
 
     line_context->cursor_index = 0;
-    /* set the initial screen cursor position. */
-    line_context->screen_cursor_index = 0;
-    line_context->screen_cursor_row = 0;
-    line_context->num_rows = 1; 
+    line_context->terminal_cursor.num_rows = 1;
     line_context->terminal_width = terminal_width;
 
     line_context->mask_character = mask_character;

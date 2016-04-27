@@ -256,7 +256,7 @@ static bool process_multiple_matches(line_context_st * const line_ctx,
         if (private_completion_context->possible_words->argc > 1)
         {
             qsort(private_completion_context->possible_words->argv,
-                  private_completion_context->possible_words->argc, sizeof( *private_completion_context->possible_words->argv),
+                  private_completion_context->possible_words->argc, sizeof(*private_completion_context->possible_words->argv),
                   qsort_string_compare);
             print_words_in_columns(line_ctx->terminal_fd,
                                    line_ctx->terminal_width,
