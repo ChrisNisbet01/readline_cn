@@ -1,13 +1,12 @@
 #include "line_context.h"
 #include "terminal.h"
 #include "terminal_cursor.h"
+#include "utils.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-
-#define MIN(x,y) ((x) < (y) ? (x) : (y))
 
 /* Write a char at the current cursor position to the 
  * terminal. 

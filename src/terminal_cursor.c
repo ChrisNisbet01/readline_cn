@@ -1,7 +1,6 @@
 #include "terminal_cursor.h"
 #include "terminal.h"
-
-#define MAX(x,y) ((x) > (y) ? (x) : (y))
+#include "utils.h"
 
 void terminal_put(terminal_cursor_st * const terminal_cursor, char const ch)
 {
@@ -13,6 +12,10 @@ void terminal_put(terminal_cursor_st * const terminal_cursor, char const ch)
         terminal_cursor->column = 0;
         terminal_cursor->row++;
         terminal_cursor->num_rows = MAX(terminal_cursor->num_rows, terminal_cursor->row + 1);
+        /* Note that num_rows will never decrease if (say) a long line 
+         * is first entered, then replaced with a shorter from by 
+         * deleting characters. I don't think this is a big deal. 
+         */
     }
 }
 
