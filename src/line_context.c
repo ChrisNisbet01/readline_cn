@@ -1,6 +1,6 @@
 #include "line_context.h"
 #include "terminal.h"
-#include "screen.h"
+#include "terminal_cursor.h"
 
 #include <stdlib.h>
 #include <string.h>

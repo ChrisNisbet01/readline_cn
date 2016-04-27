@@ -1,4 +1,4 @@
-#include "screen.h"
+#include "terminal_cursor.h"
 #include "terminal.h"
 
 #define MAX(x,y) ((x) > (y) ? (x) : (y))

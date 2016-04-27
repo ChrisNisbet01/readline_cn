@@ -8,7 +8,7 @@
 #include "readline_status.h"
 #include "read_char.h"
 #include "handlers.h"
-#include "screen.h"
+#include "terminal_cursor.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
