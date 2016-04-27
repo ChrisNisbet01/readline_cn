@@ -7,6 +7,7 @@
 #include <ctype.h>
 
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
+#define MAX(x,y) ((x) > (y) ? (x) : (y))
 
 /* write a char at the current cursor position. */
 static void terminal_write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode)
@@ -14,13 +15,13 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
     char const char_to_write = line_ctx->mask_character != '\0' ? line_ctx->mask_character : ch;
 
     tty_put(line_ctx->terminal_fd, char_to_write);
-    line_ctx->terminal_cursor_index++;
-    if (line_ctx->terminal_cursor_index == line_ctx->terminal_width)
+    line_ctx->screen_cursor_index++;
+    if (line_ctx->screen_cursor_index == line_ctx->terminal_width)
     {
         tty_put(line_ctx->terminal_fd, '\n');
-        line_ctx->terminal_cursor_index = 0;
-        line_ctx->cursor_row++;
-        line_ctx->num_rows = line_ctx->cursor_row + 1;
+        line_ctx->screen_cursor_index = 0;
+        line_ctx->screen_cursor_row++;
+        line_ctx->num_rows = MAX(line_ctx->num_rows, line_ctx->screen_cursor_row + 1);
     }
     /* if in insert mode, any chars after the one just pushed in 
      * will need to be written out.
@@ -31,8 +32,8 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
 
         if (trailing_length > 0)
         {
-            size_t const original_terminal_row = line_ctx->cursor_row;
-            size_t const original_terminal_cursor_index = line_ctx->terminal_cursor_index;
+            size_t const original_screen_cursor_row = line_ctx->screen_cursor_row;
+            size_t const original_screen_cursor_index = line_ctx->screen_cursor_index;
             char const * ptrailing;
 
             for (ptrailing = &line_ctx->buffer[line_ctx->cursor_index]; *ptrailing != '\0'; ptrailing++)
@@ -40,37 +41,37 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
                 char const char_to_put = (line_ctx->mask_character != '\0') ? line_ctx->mask_character : *ptrailing;
 
                 tty_put(line_ctx->terminal_fd, char_to_put);
-                line_ctx->terminal_cursor_index++;
-                if (line_ctx->terminal_cursor_index == line_ctx->terminal_width)
+                line_ctx->screen_cursor_index++;
+                if (line_ctx->screen_cursor_index == line_ctx->terminal_width)
                 {
                     tty_put(line_ctx->terminal_fd, '\n');
-                    line_ctx->terminal_cursor_index = 0;
-                    line_ctx->cursor_row++;
-                    line_ctx->num_rows = line_ctx->cursor_row + 1;
+                    line_ctx->screen_cursor_index = 0;
+                    line_ctx->screen_cursor_row++;
+                    line_ctx->num_rows = line_ctx->screen_cursor_row + 1;
                 }
             }
 
             /* Move the cursor back to where it was before we output the 
              * trailing chars. 
              */
-            if (line_ctx->cursor_row != original_terminal_row)
+            if (line_ctx->screen_cursor_row != original_screen_cursor_row)
             {
-                move_physical_cursor_up(line_ctx->terminal_fd, line_ctx->cursor_row - original_terminal_row);
-                line_ctx->cursor_row = original_terminal_row;
+                move_physical_cursor_up(line_ctx->terminal_fd, line_ctx->screen_cursor_row - original_screen_cursor_row);
+                line_ctx->screen_cursor_row = original_screen_cursor_row;
             }
-            if (line_ctx->terminal_cursor_index != original_terminal_cursor_index)
+            if (line_ctx->screen_cursor_index != original_screen_cursor_index)
             {
-                if (line_ctx->terminal_cursor_index > original_terminal_cursor_index)
+                if (line_ctx->screen_cursor_index > original_screen_cursor_index)
                 {
                     move_physical_cursor_left(line_ctx->terminal_fd, 
-                                              line_ctx->terminal_cursor_index - original_terminal_cursor_index);
+                                              line_ctx->screen_cursor_index - original_screen_cursor_index);
                 }
                 else
                 {
                     move_physical_cursor_right(line_ctx->terminal_fd,
-                                               original_terminal_cursor_index - line_ctx->terminal_cursor_index);
+                                               original_screen_cursor_index - line_ctx->screen_cursor_index);
                 }
-                line_ctx->terminal_cursor_index = original_terminal_cursor_index;
+                line_ctx->screen_cursor_index = original_screen_cursor_index;
             }
         }
     }
@@ -208,8 +209,8 @@ bool line_context_init(line_context_st * const line_context,
     line_context->buffer[0] = '\0';
 
     line_context->terminal_fd = terminal_fd;
-    line_context->terminal_cursor_index = 0;
-    line_context->cursor_row = 0;
+    line_context->screen_cursor_index = 0;
+    line_context->screen_cursor_row = 0;
     line_context->terminal_width = terminal_width;
     line_context->num_rows = 1;
 
@@ -235,9 +236,36 @@ void move_cursor_right_n_columns(line_context_st * const line_ctx, size_t column
 
     if (columns_to_move > 0)
     {
-        if (move_physical_cursor_right(line_ctx->terminal_fd, columns_to_move))
+        size_t const original_terminal_cursor_index = line_ctx->screen_cursor_index;
+        size_t new_terminal_cursor_index;
+        size_t rows_to_move;
+
+        line_ctx->cursor_index += columns_to_move; 
+
+        /* Update the physical cursor. */
+        rows_to_move = (line_ctx->screen_cursor_index + columns_to_move) / line_ctx->terminal_width;
+        new_terminal_cursor_index = (line_ctx->screen_cursor_index + columns_to_move) % line_ctx->terminal_width;
+
+        line_ctx->screen_cursor_index = new_terminal_cursor_index;
+        line_ctx->screen_cursor_row += rows_to_move;
+
+        /* Update the physical cursor row. */
+        if (rows_to_move > 0)
         {
-            line_ctx->cursor_index += columns_to_move;
+            move_physical_cursor_down(line_ctx->terminal_fd, rows_to_move);
+        }
+        /* Update the physical cursor column */
+        if (line_ctx->screen_cursor_index > original_terminal_cursor_index)
+        {
+            size_t const chars_to_move = line_ctx->screen_cursor_index - original_terminal_cursor_index;
+
+            move_physical_cursor_right(line_ctx->terminal_fd, chars_to_move);
+        }
+        else if (line_ctx->screen_cursor_index < original_terminal_cursor_index)
+        {
+            size_t const chars_to_move = original_terminal_cursor_index - line_ctx->screen_cursor_index;
+
+            move_physical_cursor_left(line_ctx->terminal_fd, chars_to_move);
         }
     }
 }
@@ -248,9 +276,46 @@ void move_cursor_left_n_columns(line_context_st * const line_ctx, size_t const c
 
     if (columns_to_move > 0)
     {
-        if (move_physical_cursor_left(line_ctx->terminal_fd, columns_to_move))
+        size_t const original_screen_cursor_index = line_ctx->screen_cursor_index;
+        size_t new_screen_cursor_index;
+        size_t rows_to_move;
+
+        line_ctx->cursor_index -= columns_to_move;
+
+        /* Update the physical cursor. */
+        rows_to_move = columns_to_move / line_ctx->terminal_width;
+        columns_to_move %= line_ctx->terminal_width;
+
+        if (line_ctx->screen_cursor_index >= columns_to_move)
         {
-            line_ctx->cursor_index -= columns_to_move;
+            new_screen_cursor_index = line_ctx->screen_cursor_index - columns_to_move;
+        }
+        else
+        {
+            new_screen_cursor_index = line_ctx->screen_cursor_index + line_ctx->terminal_width - columns_to_move;
+            rows_to_move++;
+        }
+
+        line_ctx->screen_cursor_index = new_screen_cursor_index;
+        line_ctx->screen_cursor_row -= rows_to_move;
+
+        /* Update the physical cursor row. */
+        if (rows_to_move > 0)
+        {
+            move_physical_cursor_up(line_ctx->terminal_fd, rows_to_move);
+        }
+        /* Update the physical cursor column */
+        if (line_ctx->screen_cursor_index > original_screen_cursor_index)
+        {
+            size_t const chars_to_move = line_ctx->screen_cursor_index - original_screen_cursor_index;
+
+            move_physical_cursor_right(line_ctx->terminal_fd, chars_to_move);
+        }
+        else if (line_ctx->screen_cursor_index < original_screen_cursor_index)
+        {
+            size_t const chars_to_move = original_screen_cursor_index - line_ctx->screen_cursor_index;
+
+            move_physical_cursor_left(line_ctx->terminal_fd, chars_to_move);
         }
     }
 }
