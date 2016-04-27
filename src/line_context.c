@@ -16,7 +16,7 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
 {
     char const char_to_write = line_ctx->mask_character != '\0' ? line_ctx->mask_character : ch;
 
-    screen_put(line_ctx, char_to_write);
+    screen_put(&line_ctx->terminal_cursor, char_to_write);
     /* if in insert mode, any chars after the one just written
      * will need to be written out.
      */
@@ -31,7 +31,7 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
             size_t new_screen_cursor_row;
             size_t new_screen_cursor_index; 
 
-            screen_puts(line_ctx, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
+            screen_puts(&line_ctx->terminal_cursor, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
 
             /* Move the cursor back to where it was before we output the 
              * trailing chars. 
@@ -196,9 +196,9 @@ void redisplay_line(line_context_st * const line_ctx)
 
     terminal_cursor_reset(&line_ctx->terminal_cursor);
 
-    screen_puts(line_ctx, line_ctx->prompt, '\0');
+    screen_puts(&line_ctx->terminal_cursor, line_ctx->prompt, '\0');
 
-    screen_puts(line_ctx, line_ctx->buffer, line_ctx->mask_character);
+    screen_puts(&line_ctx->terminal_cursor, line_ctx->buffer, line_ctx->mask_character);
     line_ctx->cursor_index = strlen(line_ctx->buffer);
     restore_cursor_position(line_ctx, original_cursor_index);
 }
@@ -301,11 +301,11 @@ void delete_char_to_the_right(line_context_st * const line_ctx, bool const updat
 
         if (update_display)
         {
-            screen_puts(line_ctx, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
+            screen_puts(&line_ctx->terminal_cursor, &line_ctx->buffer[line_ctx->cursor_index], line_ctx->mask_character);
             /* Remove the remaining char from the end of the line by 
              * replacing it with a space. 
              */
-            screen_put(line_ctx, ' ');
+            screen_put(&line_ctx->terminal_cursor, ' ');
             move_terminal_cursor_left_n_columns(line_ctx, trailing_chars);
         }
     }

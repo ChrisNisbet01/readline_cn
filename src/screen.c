@@ -3,28 +3,28 @@
 
 #define MAX(x,y) ((x) > (y) ? (x) : (y))
 
-void screen_put(line_context_st * const line_ctx, char const ch)
+void screen_put(terminal_cursor_st * const terminal_cursor, char const ch)
 {
-    tty_put(line_ctx->terminal_cursor.terminal_fd, ch);
-    line_ctx->terminal_cursor.column++;
-    if (line_ctx->terminal_cursor.column == line_ctx->terminal_width)
+    tty_put(terminal_cursor->terminal_fd, ch);
+    terminal_cursor->column++;
+    if (terminal_cursor->column == terminal_cursor->terminal_width)
     {
-        tty_put(line_ctx->terminal_cursor.terminal_fd, '\n');
-        line_ctx->terminal_cursor.column = 0;
-        line_ctx->terminal_cursor.row++;
-        line_ctx->terminal_cursor.num_rows = MAX(line_ctx->terminal_cursor.num_rows, line_ctx->terminal_cursor.row + 1);
+        tty_put(terminal_cursor->terminal_fd, '\n');
+        terminal_cursor->column = 0;
+        terminal_cursor->row++;
+        terminal_cursor->num_rows = MAX(terminal_cursor->num_rows, terminal_cursor->row + 1);
     }
 }
 
-void screen_puts(line_context_st * const line_ctx, char const * const string, char const mask_character)
+void screen_puts(terminal_cursor_st * const terminal_cursor, char const * const string, char const mask_character)
 {
     char const * p = string;
 
-    while ( *p != '\0')
+    while (*p != '\0')
     {
         char const char_to_put = (mask_character != '\0') ? mask_character : *p;
 
-        screen_put(line_ctx, char_to_put);
+        screen_put(terminal_cursor, char_to_put);
         p++;
     }
 }
