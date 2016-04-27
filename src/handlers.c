@@ -13,7 +13,7 @@ static readline_status_t handle_enter(readline_st * const readline_ctx)
     /* Move the cursor to the end of the line so that any output 
      * from the application will go after this line. 
      */
-    move_cursor_right_n_columns(line_ctx, line_ctx->line_length - line_ctx->cursor_index);    
+    move_cursor_right_n_columns(line_ctx, line_ctx->line_length - line_ctx->cursor_index);
     tty_put(line_ctx->terminal_fd, '\n');
 
     return readline_status_done;
@@ -127,56 +127,14 @@ static void handle_shift_up(readline_st * const readline_ctx)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;
 
-    if (line_ctx->screen_cursor_row > 0)
-    {
-        size_t chars_moved;
-
-        line_ctx->screen_cursor_row--;
-
-        move_physical_cursor_up(readline_ctx->out_fd, 1);
-
-        chars_moved = line_ctx->terminal_width;
-        if (line_ctx->screen_cursor_row == 0)
-        {
-            size_t const prompt_width = strlen(line_ctx->prompt);
-
-            if (line_ctx->screen_cursor_index < prompt_width)
-            {
-                size_t const chars_to_move_right = prompt_width - line_ctx->screen_cursor_index;
-
-                move_physical_cursor_right(line_ctx->terminal_fd, chars_to_move_right);
-                line_ctx->screen_cursor_index += chars_to_move_right;
-                chars_moved -= chars_to_move_right;
-            }
-        }
-        line_ctx->cursor_index -= chars_moved;
-        fprintf(stderr, "chars moved %zd cursor index %zd\n", chars_moved, line_ctx->cursor_index);
-    }
+    move_cursor_left_n_columns(line_ctx, line_ctx->terminal_width);
 }
 
 static void handle_shift_down(readline_st * const readline_ctx)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;
 
-    if (line_ctx->screen_cursor_row < line_ctx->num_rows - 1)
-    {
-        size_t chars_moved;
-
-        line_ctx->screen_cursor_row++;
-
-        move_physical_cursor_down(readline_ctx->out_fd, 1);
-
-        chars_moved = line_ctx->terminal_width;
-        line_ctx->cursor_index += chars_moved;
-        if (line_ctx->cursor_index > line_ctx->line_length)
-        {
-            size_t const chars_to_move_left = line_ctx->cursor_index - line_ctx->line_length;
-
-            move_physical_cursor_left(line_ctx->terminal_fd, chars_to_move_left);
-            line_ctx->screen_cursor_index -= chars_to_move_left;
-            line_ctx->cursor_index = line_ctx->line_length;
-        }
-    }
+    move_cursor_right_n_columns(line_ctx, line_ctx->terminal_width);
 }
 
 static void handle_down_arrow(readline_st * const readline_ctx)
