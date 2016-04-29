@@ -19,7 +19,8 @@ static readline_status_t handle_enter(readline_st * const readline_ctx)
     return readline_status_done;
 }
 
-static void handle_control_t(readline_st * const readline_ctx)
+/* Transpose two characters at the cursor position. */
+static void transpose_characters(readline_st * const readline_ctx)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;
     size_t columns_to_move_left;
@@ -49,10 +50,20 @@ static void handle_control_t(readline_st * const readline_ctx)
 
     move_cursor_left_n_columns(line_ctx, columns_to_move_left);
     write_char(line_ctx, second_char, false, true);
-    write_char(line_ctx, first_char, false, true); 
+    write_char(line_ctx, first_char, false, true);
 
 done:
     return;
+}
+
+static void handle_control_t(readline_st * const readline_ctx)
+{
+    transpose_characters(readline_ctx);
+}
+
+static void handle_control_w(readline_st * const readline_ctx)
+{
+    // TODO: Delete the word to the left.
 }
 
 static void handle_tab(readline_st * const readline_ctx)
@@ -83,6 +94,9 @@ readline_status_t handle_control_char(readline_st * const readline_ctx, int cons
             break;
         case CTL('C'):
             status = readline_status_ctrl_c;
+            break;
+        case CTL('W'):
+            handle_control_w(readline_ctx);
             break;
         default:  /* silently ignore */
             break;

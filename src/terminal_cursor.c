@@ -2,10 +2,14 @@
 #include "terminal.h"
 #include "utils.h"
 
+/* Write a character to the terminal, keeping note of which row 
+ * and column this cursor is on. 
+ */
 void terminal_put(terminal_cursor_st * const terminal_cursor, char const ch)
 {
     tty_put(terminal_cursor->terminal_fd, ch);
     terminal_cursor->column++;
+
     if (terminal_cursor->column == terminal_cursor->terminal_width)
     {
         tty_put(terminal_cursor->terminal_fd, '\n');
