@@ -146,7 +146,7 @@ static int setattr(int fd, int opt, const struct termios * arg)
     return result;
 }
 
-void terminal_restore(struct termios * const previous_terminal_settings)
+void terminal_prepare(struct termios * const previous_terminal_settings)
 {
     struct termios new_terminal_settings;
 
@@ -168,7 +168,7 @@ void terminal_restore(struct termios * const previous_terminal_settings)
     }
 }
 
-void restore_terminal(struct termios * const previous_terminal_settings)
+void terminal_restore(struct termios * const previous_terminal_settings)
 {
     if (-1 == setattr(0, TCSADRAIN, previous_terminal_settings))
     {

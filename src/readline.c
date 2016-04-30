@@ -140,7 +140,7 @@ static bool readline_init(readline_st * const readline_ctx,
 
         history_reset(readline_ctx->history);
 
-        terminal_restore(&readline_ctx->previous_terminal_settings);
+        terminal_prepare(&readline_ctx->previous_terminal_settings);
         readline_ctx->terminal_was_modified = true;
     }
     else
