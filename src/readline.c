@@ -136,11 +136,11 @@ static bool readline_init(readline_st * const readline_ctx,
     readline_ctx->terminal_was_modified = false;
     if (readline_ctx->is_a_terminal)
     {
-        terminal_width = get_terminal_width(readline_ctx->out_fd);
+        terminal_width = terminal_get_width(readline_ctx->out_fd);
 
         history_reset(readline_ctx->history);
 
-        prepare_terminal(&readline_ctx->previous_terminal_settings);
+        terminal_restore(&readline_ctx->previous_terminal_settings);
         readline_ctx->terminal_was_modified = true;
     }
     else
@@ -175,7 +175,7 @@ static void readline_cleanup(readline_st * const readline_ctx)
 
     if (readline_ctx->terminal_was_modified)
     {
-        restore_terminal(&readline_ctx->previous_terminal_settings);
+        terminal_restore(&readline_ctx->previous_terminal_settings);
     }
 
     line_context_teardown(line_ctx);

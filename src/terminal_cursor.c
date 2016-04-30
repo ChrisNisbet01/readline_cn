@@ -3,7 +3,7 @@
 #include "utils.h"
 
 /* Write a character to the terminal, keeping note of which row 
- * and column this cursor is on. 
+ * and column the cursor is on. 
  */
 void terminal_put(terminal_cursor_st * const terminal_cursor, char const ch)
 {
@@ -54,20 +54,20 @@ void terminal_move_cursor_right_n_columns(terminal_cursor_st * const terminal_cu
      */
     if (rows_to_move > 0)
     {
-        move_physical_cursor_down(terminal_cursor->terminal_fd, rows_to_move);
+        terminal_move_physical_cursor_down(terminal_cursor->terminal_fd, rows_to_move);
     }
     /* Update the physical cursor column */
     if (new_terminal_cursor_column > original_terminal_cursor_index)
     {
         size_t const chars_to_move = new_terminal_cursor_column - original_terminal_cursor_index;
 
-        move_physical_cursor_right(terminal_cursor->terminal_fd, chars_to_move);
+        terminal_move_physical_cursor_right(terminal_cursor->terminal_fd, chars_to_move);
     }
     else if (new_terminal_cursor_column < original_terminal_cursor_index)
     {
         size_t const chars_to_move = original_terminal_cursor_index - new_terminal_cursor_column;
 
-        move_physical_cursor_left(terminal_cursor->terminal_fd, chars_to_move);
+        terminal_move_physical_cursor_left(terminal_cursor->terminal_fd, chars_to_move);
     }
 }
 
@@ -100,20 +100,20 @@ void terminal_move_cursor_left_n_columns(terminal_cursor_st * const terminal_cur
      */
     if (rows_to_move > 0)
     {
-        move_physical_cursor_up(terminal_cursor->terminal_fd, rows_to_move);
+        terminal_move_physical_cursor_up(terminal_cursor->terminal_fd, rows_to_move);
     }
     /* Update the physical cursor column */
     if (new_screen_cursor_index > original_screen_cursor_column)
     {
         size_t const chars_to_move = new_screen_cursor_index - original_screen_cursor_column;
 
-        move_physical_cursor_right(terminal_cursor->terminal_fd, chars_to_move);
+        terminal_move_physical_cursor_right(terminal_cursor->terminal_fd, chars_to_move);
     }
     else if (new_screen_cursor_index < original_screen_cursor_column)
     {
         size_t const chars_to_move = original_screen_cursor_column - new_screen_cursor_index;
 
-        move_physical_cursor_left(terminal_cursor->terminal_fd, chars_to_move);
+        terminal_move_physical_cursor_left(terminal_cursor->terminal_fd, chars_to_move);
     }
 }
 
@@ -124,26 +124,26 @@ void terminal_delete_line_from_cursor_to_end(terminal_cursor_st * const terminal
     size_t rows_to_move_up;
     size_t columns_to_move_right;
 
-    delete_to_end_of_line(terminal_cursor->terminal_fd);
+    terminal_delete_to_end_of_line(terminal_cursor->terminal_fd);
     /* Must also remove any other lines below this one. */
 
     for (screen_cursor_row = (terminal_cursor->row + 1);
          screen_cursor_row < terminal_cursor->num_rows;
          screen_cursor_row++)
     {
-        move_physical_cursor_down(terminal_cursor->terminal_fd, 1);
+        terminal_move_physical_cursor_down(terminal_cursor->terminal_fd, 1);
         if (rows_to_beginning_of_line > 0)
         {
-            move_physical_cursor_left(terminal_cursor->terminal_fd, rows_to_beginning_of_line);
+            terminal_move_physical_cursor_left(terminal_cursor->terminal_fd, rows_to_beginning_of_line);
             rows_to_beginning_of_line = 0;
         }
-        delete_to_end_of_line(terminal_cursor->terminal_fd);
+        terminal_delete_to_end_of_line(terminal_cursor->terminal_fd);
     }
     rows_to_move_up = terminal_cursor->num_rows - terminal_cursor->row - 1;
     columns_to_move_right = terminal_cursor->column - rows_to_beginning_of_line;
 
-    move_physical_cursor_up(terminal_cursor->terminal_fd, rows_to_move_up);
-    move_physical_cursor_right(terminal_cursor->terminal_fd, columns_to_move_right);
+    terminal_move_physical_cursor_up(terminal_cursor->terminal_fd, rows_to_move_up);
+    terminal_move_physical_cursor_right(terminal_cursor->terminal_fd, columns_to_move_right);
 }
 
 void terminal_cursor_reset(terminal_cursor_st * const terminal_cursor)

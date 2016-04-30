@@ -9,19 +9,19 @@
 
 #define DEFAULT_SCREEN_COLUMNS 80
 
-void tty_put(int const out_fd, const char ch)
+void tty_put(int const out_fd, char const ch)
 {
     // TODO: Don't ignore return value.
     (void)write(out_fd, &ch, sizeof ch);
 }
 
-void tty_puts(int const out_fd, const char * const string, const char mask_character)
+void tty_puts(int const out_fd, char const * const string)
 {
     char const * p = string;
 
     while (*p != '\0')
     {
-        char const char_to_put = (mask_character != '\0') ? mask_character : *p;
+        char const char_to_put = *p;
 
         tty_put(out_fd, char_to_put);
         p++;
@@ -137,7 +137,7 @@ static int setattr(int fd, int opt, const struct termios * arg)
     return result;
 }
 
-void prepare_terminal(struct termios * const previous_terminal_settings)
+void terminal_restore(struct termios * const previous_terminal_settings)
 {
     struct termios new_terminal_settings;
 
@@ -167,7 +167,7 @@ void restore_terminal(struct termios * const previous_terminal_settings)
     }
 }
 
-size_t get_terminal_width(int const out_fd)
+size_t terminal_get_width(int const out_fd)
 {
     struct winsize window;
     int width;
@@ -195,34 +195,34 @@ static bool move_physical_cursor(int const out_fd, size_t const amount_to_move, 
         snprintf(buffer, sizeof buffer, "\033[%zu%c", amount_to_move, direction);
 
         // TODO: check for write error
-        tty_puts(out_fd, buffer, '\0');
+        tty_puts(out_fd, buffer);
     }
     cursor_moved = true;
 
     return cursor_moved;
 }
 
-bool move_physical_cursor_right(int const out_fd, size_t const columns)
+bool terminal_move_physical_cursor_right(int const out_fd, size_t const columns)
 {
     return move_physical_cursor(out_fd, columns, 'C');
 }
 
-bool move_physical_cursor_left(int const out_fd, size_t const columns)
+bool terminal_move_physical_cursor_left(int const out_fd, size_t const columns)
 {
     return move_physical_cursor(out_fd, columns, 'D');
 }
 
-bool move_physical_cursor_up(int const out_fd, size_t const rows)
+bool terminal_move_physical_cursor_up(int const out_fd, size_t const rows)
 {
     return move_physical_cursor(out_fd, rows, 'A');
 }
 
-bool move_physical_cursor_down(int const out_fd, size_t const rows)
+bool terminal_move_physical_cursor_down(int const out_fd, size_t const rows)
 {
     return move_physical_cursor(out_fd, rows, 'B');
 }
 
-void delete_to_end_of_line(int const out_fd)
+void terminal_delete_to_end_of_line(int const out_fd)
 {
-    tty_puts(out_fd, "\033[K", '\0');
+    tty_puts(out_fd, "\033[K");
 }
