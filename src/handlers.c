@@ -70,6 +70,20 @@ static void handle_tab(readline_st * const readline_ctx)
     }
 }
 
+static void handle_home_key(readline_st * const readline_ctx)
+{
+    line_context_st * const line_ctx = &readline_ctx->line_context;
+
+    move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index);
+}
+
+static void handle_end_key(readline_st * const readline_ctx)
+{
+    line_context_st * const line_ctx = &readline_ctx->line_context;
+
+    move_cursor_right_n_columns(line_ctx, line_ctx->line_length - line_ctx->cursor_index);
+}
+
 readline_status_t handle_control_char(readline_st * const readline_ctx, int const ch)
 {
     readline_status_t status = readline_status_continue;
@@ -97,6 +111,12 @@ readline_status_t handle_control_char(readline_st * const readline_ctx, int cons
         case CTL('U'):
             handle_control_u(readline_ctx);
             break;
+        case CTL('A'):
+            handle_home_key(readline_ctx);
+            break;
+        case CTL('E'):
+            handle_end_key(readline_ctx);
+            break;
         default:  /* silently ignore any control character that isn't supported. */
             break;
     }
@@ -116,20 +136,6 @@ static void handle_left_arrow(readline_st * const readline_ctx)
     line_context_st * const line_ctx = &readline_ctx->line_context;
 
     move_cursor_left_n_columns(line_ctx, 1);
-}
-
-static void handle_home_key(readline_st * const readline_ctx)
-{
-    line_context_st * const line_ctx = &readline_ctx->line_context;
-
-    move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index);
-}
-
-static void handle_end_key(readline_st * const readline_ctx)
-{
-    line_context_st * const line_ctx = &readline_ctx->line_context;
-
-    move_cursor_right_n_columns(line_ctx, line_ctx->line_length - line_ctx->cursor_index);
 }
 
 static void handle_insert_key(readline_st * const readline_ctx)
