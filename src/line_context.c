@@ -11,7 +11,8 @@
 static void restore_cursor_position(line_context_st * const line_ctx, size_t const original_cursor_position);
 
 /* Write a char at the current cursor position to the 
- * terminal. 
+ * terminal. If inserting the character, write out all 
+ * subsequent characters to keep the display up to date. 
  */
 static void terminal_write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode)
 {
