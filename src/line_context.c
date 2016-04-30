@@ -409,7 +409,7 @@ size_t get_index_of_start_of_previous_word(line_context_st * const line_ctx)
 
     if (line_ctx->cursor_index > 0)
     {
-        /* Skip left passed whitespace. */
+        /* Move left passed word separators. */
         for (index = line_ctx->cursor_index - 1; index != 0; index--)
         {
             if (!is_word_separator(line_ctx->buffer[index]))
@@ -417,8 +417,8 @@ size_t get_index_of_start_of_previous_word(line_context_st * const line_ctx)
                 break;
             }
         }
-        /* Skip left until the next character to the left is 
-         * whitespace. 
+        /* Skip left until the next character to the left is a word 
+         * separator. 
          */
         for (; index > 0; index--)
         {
@@ -440,12 +440,9 @@ size_t get_index_of_end_of_next_word(line_context_st * const line_ctx)
 {
     size_t index;
 
-    /* TODO - use more than just space (e.g. '/') as word 
-     * separators. 
-     */
     if (line_ctx->cursor_index < line_ctx->line_length)
     {
-        /* Move right passed whitespace. */
+        /* Move right passed word separators. */
         for (index = line_ctx->cursor_index + 1; index < line_ctx->line_length; index++)
         {
             if (!is_word_separator(line_ctx->buffer[index]))
@@ -453,7 +450,7 @@ size_t get_index_of_end_of_next_word(line_context_st * const line_ctx)
                 break;
             }
         }
-        /* Move right until we hit whitespace. 
+        /* Move right until we hit a word separator. 
          */
         for (; index < line_ctx->line_length; index++)
         {
@@ -488,6 +485,26 @@ void move_right_to_end_of_word(line_context_st * const line_ctx)
     if (index != line_ctx->cursor_index)
     {
         move_cursor_right_n_columns(line_ctx, index - line_ctx->cursor_index);
+    }
+}
+
+void delete_previous_word(line_context_st * const line_ctx)
+{
+    size_t const index = get_index_of_start_of_previous_word(line_ctx);
+
+    if (index < line_ctx->cursor_index)
+    {
+        delete_chars_to_the_left(line_ctx, line_ctx->cursor_index - index);
+    }
+}
+
+void delete_to_next_word(line_context_st * const line_ctx)
+{
+    size_t const index = get_index_of_end_of_next_word(line_ctx);
+
+    if (index > line_ctx->cursor_index)
+    {
+        delete_chars_to_the_right(line_ctx, index - line_ctx->cursor_index);
     }
 }
 

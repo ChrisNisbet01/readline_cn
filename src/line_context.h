@@ -60,6 +60,8 @@ size_t get_index_of_start_of_previous_word(line_context_st * const line_ctx);
 size_t get_index_of_end_of_next_word(line_context_st * const line_ctx);
 void move_left_to_beginning_of_word(line_context_st * const line_ctx);
 void move_right_to_end_of_word(line_context_st * const line_ctx);
+void delete_previous_word(line_context_st * const line_ctx);
+void delete_to_next_word(line_context_st * const line_ctx);
 
 
 #endif /* __LINE_CONTEXT_H__ */

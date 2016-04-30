@@ -27,13 +27,7 @@ static void handle_control_t(readline_st * const readline_ctx)
 
 static void handle_control_w(readline_st * const readline_ctx)
 {
-    line_context_st * const line_ctx = &readline_ctx->line_context;
-    size_t const index = get_index_of_start_of_previous_word(line_ctx); 
-
-    if (index < line_ctx->cursor_index)
-    {
-        delete_chars_to_the_left(line_ctx, line_ctx->cursor_index - index);
-    }
+    delete_previous_word(&readline_ctx->line_context);
 }
 
 static void handle_control_k(readline_st * const readline_ctx)
@@ -57,6 +51,11 @@ static void handle_control_left(readline_st * const readline_ctx)
 static void handle_control_right(readline_st * const readline_ctx)
 {
     move_right_to_end_of_word(&readline_ctx->line_context);
+}
+
+static void handle_alt_d(readline_st * const readline_ctx)
+{
+    delete_to_next_word(&readline_ctx->line_context); 
 }
 
 static void handle_tab(readline_st * const readline_ctx)
@@ -423,6 +422,10 @@ readline_status_t handle_escaped_char(readline_st * const readline_ctx)
     else if (escaped_char == '[')
     {
         status = handle_escape_left_bracket(readline_ctx);
+    }
+    else if (escaped_char == 'd' || escaped_char == 'D')
+    {
+        handle_alt_d(readline_ctx);
     }
     else
     {
