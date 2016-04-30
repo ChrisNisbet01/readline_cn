@@ -111,7 +111,10 @@ static readline_status_t edit_input(readline_st * const readline_ctx)
     {
         line_context_st * const line_ctx = &readline_ctx->line_context;
 
-        terminal_puts(&line_ctx->terminal_cursor, line_ctx->prompt, '\0');
+        terminal_puts(&line_ctx->terminal_cursor, 
+                      line_ctx->prompt, 
+                      '\0',
+                      line_ctx->terminal_fd);
     }
 
     do

@@ -7,7 +7,6 @@
 typedef struct terminal_cursor_st terminal_cursor_st;
 struct terminal_cursor_st
 {
-    int terminal_fd; /* The file descriptor to write to when updating the terminal. */
     size_t terminal_width;
     size_t row;
     size_t column;
