@@ -44,6 +44,8 @@ void move_cursor_right_n_columns(line_context_st * const line_ctx, size_t column
 void move_cursor_left_n_columns(line_context_st * const line_ctx, size_t const columns);
 void delete_char_to_the_left(line_context_st * const line_ctx);
 void delete_char_to_the_right(line_context_st * const line_ctx, bool const update_display);
+void delete_chars_to_the_right(line_context_st * const line_ctx, size_t const chars_to_delete);
+void delete_chars_to_the_left(line_context_st * const line_ctx, size_t const chars_to_delete);
 void write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode, bool const update_terminal);
 void write_string(line_context_st * const line_ctx, char const * const string, bool insert_mode, bool const update_terminal);
 void complete_word(line_context_st * const line_ctx, char const * const completion, bool const update_terminal);
@@ -51,6 +53,13 @@ void replace_edit_line(line_context_st * const line_ctx, char const * const repl
 void redisplay_line(line_context_st * const line_ctx);
 void free_saved_line(char const * * const saved_line);
 void save_current_line(line_context_st * const line_ctx, char const * * const destination); 
+void delete_from_cursor_to_end(line_context_st * const line_ctx);
+void delete_from_cursor_to_start(line_context_st * const line_ctx); 
+void transpose_characters(line_context_st * const line_ctx);
+size_t get_index_of_start_of_previous_word(line_context_st * const line_ctx);
+size_t get_index_of_end_of_next_word(line_context_st * const line_ctx);
+void move_left_to_beginning_of_word(line_context_st * const line_ctx);
+void move_right_to_end_of_word(line_context_st * const line_ctx);
 
 
 #endif /* __LINE_CONTEXT_H__ */

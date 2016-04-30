@@ -117,7 +117,12 @@ done:
     return char_was_written;
 }
 
-static void delete_line_from_cursor_to_end(line_context_st * const line_ctx)
+void delete_from_cursor_to_start(line_context_st * const line_ctx)
+{
+    delete_chars_to_the_left(line_ctx, line_ctx->cursor_index);
+}
+
+void delete_from_cursor_to_end(line_context_st * const line_ctx)
 {
     line_ctx->line_length = line_ctx->cursor_index;
     line_ctx->buffer[line_ctx->line_length] = '\0'; 
@@ -226,6 +231,12 @@ void move_cursor_left_n_columns(line_context_st * const line_ctx, size_t const c
     }
 }
 
+static void delete_edit_line(line_context_st * const line_ctx)
+{
+    move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index);
+    delete_from_cursor_to_end(line_ctx);
+}
+
 /*
  * replace_edit_line: 
  * Replace the whole line except for the leading prompt with the
@@ -233,8 +244,7 @@ void move_cursor_left_n_columns(line_context_st * const line_ctx, size_t const c
 */
 void replace_edit_line(line_context_st * const line_ctx, char const * const replacement)
 {
-    move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index);
-    delete_line_from_cursor_to_end(line_ctx);
+    delete_edit_line(line_ctx);
     write_string(line_ctx, replacement, true, true);
 }
 
@@ -278,6 +288,22 @@ void delete_char_to_the_left(line_context_st * const line_ctx)
     }
 }
 
+void delete_chars_to_the_right(line_context_st * const line_ctx, size_t const chars_to_delete)
+{
+    size_t count;
+
+    for (count = 0; count < chars_to_delete; count++)
+    {
+        delete_char_to_the_right(line_ctx, true);
+    }
+}
+
+void delete_chars_to_the_left(line_context_st * const line_ctx, size_t const chars_to_delete)
+{
+    move_cursor_left_n_columns(line_ctx, chars_to_delete);
+    delete_chars_to_the_right(line_ctx, chars_to_delete);
+}
+
 /* Write a char at the current cursor position. */
 void write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode, bool const update_terminal)
 {
@@ -304,6 +330,9 @@ void write_string(line_context_st * const line_ctx, char const * const string, b
 
 static void delete_to_end_of_word(line_context_st * const line_ctx, bool const update_terminal)
 {
+    /* TODO - Use field separators rather than isspace? Use 
+     * isalnum() instead of !isspace()? 
+     */
     while (line_ctx->buffer[line_ctx->cursor_index] != '\0' && !isspace(line_ctx->buffer[line_ctx->cursor_index]))
     {
         delete_char_to_the_right(line_ctx, update_terminal);
@@ -330,6 +359,136 @@ void save_current_line(line_context_st * const line_ctx, char const * * const de
     /* Free any old string at the destination. */
     free_saved_line(destination);
     *destination = strdup(line_ctx->buffer);
+}
+
+/* Transpose two characters at the cursor position. */
+void transpose_characters(line_context_st * const line_ctx)
+{
+    size_t columns_to_move_left;
+    char first_char;
+    char second_char;
+
+    if (line_ctx->line_length < 2)
+    {
+        goto done;
+    }
+    if (line_ctx->cursor_index == 0)
+    {
+        goto done;
+    }
+    if (line_ctx->cursor_index == line_ctx->line_length)
+    {
+        first_char = line_ctx->buffer[line_ctx->cursor_index - 2];
+        second_char = line_ctx->buffer[line_ctx->cursor_index - 1];
+        columns_to_move_left = 2;
+    }
+    else
+    {
+        first_char = line_ctx->buffer[line_ctx->cursor_index - 1];
+        second_char = line_ctx->buffer[line_ctx->cursor_index];
+        columns_to_move_left = 1;
+    }
+
+    move_cursor_left_n_columns(line_ctx, columns_to_move_left);
+    write_char(line_ctx, second_char, false, true);
+    write_char(line_ctx, first_char, false, true);
+
+done:
+    return;
+}
+
+static bool is_word_separator(char const ch)
+{
+    /* XXX - Also check user supplied field separators? */
+    return isalnum((int)ch) == 0;
+}
+
+size_t get_index_of_start_of_previous_word(line_context_st * const line_ctx)
+{
+    size_t index;
+
+    if (line_ctx->cursor_index > 0)
+    {
+        /* Skip left passed whitespace. */
+        for (index = line_ctx->cursor_index - 1; index != 0; index--)
+        {
+            if (!is_word_separator(line_ctx->buffer[index]))
+            {
+                break;
+            }
+        }
+        /* Skip left until the next character to the left is 
+         * whitespace. 
+         */
+        for (; index > 0; index--)
+        {
+            if (is_word_separator(line_ctx->buffer[index - 1]))
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        index = 0;
+    }
+
+    return index;
+}
+
+size_t get_index_of_end_of_next_word(line_context_st * const line_ctx)
+{
+    size_t index;
+
+    /* TODO - use more than just space (e.g. '/') as word 
+     * separators. 
+     */
+    if (line_ctx->cursor_index < line_ctx->line_length)
+    {
+        /* Move right passed whitespace. */
+        for (index = line_ctx->cursor_index + 1; index < line_ctx->line_length; index++)
+        {
+            if (!is_word_separator(line_ctx->buffer[index]))
+            {
+                break;
+            }
+        }
+        /* Move right until we hit whitespace. 
+         */
+        for (; index < line_ctx->line_length; index++)
+        {
+            if (is_word_separator(line_ctx->buffer[index]))
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        index = line_ctx->line_length;
+    }
+
+    return index;
+}
+
+void move_left_to_beginning_of_word(line_context_st * const line_ctx)
+{
+    size_t const index = get_index_of_start_of_previous_word(line_ctx);
+
+    if (index != line_ctx->cursor_index)
+    {
+        move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index - index);
+    }
+}
+
+void move_right_to_end_of_word(line_context_st * const line_ctx)
+{
+    size_t const index = get_index_of_end_of_next_word(line_ctx);
+
+    if (index != line_ctx->cursor_index)
+    {
+        move_cursor_right_n_columns(line_ctx, index - line_ctx->cursor_index);
+    }
 }
 
 
