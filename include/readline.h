@@ -13,15 +13,14 @@
 
 typedef struct readline_st readline_st;
 
-typedef enum readline_result_t readline_result_t;
-enum readline_result_t
+typedef enum readline_result_t
 {
     readline_result_success,
     readline_result_ctrl_c,
     readline_result_timed_out,
     readline_result_eof,
     readline_result_error   /* General error */
-};
+} readline_result_t;
 
 typedef struct completion_context_st completion_context_st;
 typedef struct help_context_st help_context_st; 
