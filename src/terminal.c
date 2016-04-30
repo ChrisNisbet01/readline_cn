@@ -33,17 +33,26 @@ static bool wait_for_file_to_be_readable(int const fd, unsigned int const max_se
     int select_result;
     fd_set fd_set;
     struct timeval timeout;
+    struct timeval * timeout_to_use;
     bool file_is_readable;
 
-    timeout.tv_sec = max_seconds_to_wait;
-    timeout.tv_usec = 0;
+    if (max_seconds_to_wait > 0)
+    {
+        timeout.tv_sec = max_seconds_to_wait;
+        timeout.tv_usec = 0;
+        timeout_to_use = &timeout;
+    }
+    else
+    {
+        timeout_to_use = NULL; /* Block indefinitely. */
+    }
 
     FD_ZERO(&fd_set);
     FD_SET(fd, &fd_set);
 
     do
     {
-        select_result = select(fd + 1, &fd_set, NULL, NULL, &timeout);
+        select_result = select(fd + 1, &fd_set, NULL, NULL, timeout_to_use);
     }
     while (select_result == -1 && errno == EINTR);
 
@@ -141,7 +150,8 @@ static int setattr(int fd, int opt, const struct termios * arg)
                 tries--;
             }
         }
-    }while (-1 == result && tries > 0);
+    }
+    while (-1 == result && tries > 0);
 
     return result;
 }
@@ -211,16 +221,6 @@ static bool move_physical_cursor(int const out_fd, size_t const amount_to_move, 
     return cursor_moved;
 }
 
-bool terminal_move_physical_cursor_right(int const out_fd, size_t const columns)
-{
-    return move_physical_cursor(out_fd, columns, 'C');
-}
-
-bool terminal_move_physical_cursor_left(int const out_fd, size_t const columns)
-{
-    return move_physical_cursor(out_fd, columns, 'D');
-}
-
 bool terminal_move_physical_cursor_up(int const out_fd, size_t const rows)
 {
     return move_physical_cursor(out_fd, rows, 'A');
@@ -229,6 +229,16 @@ bool terminal_move_physical_cursor_up(int const out_fd, size_t const rows)
 bool terminal_move_physical_cursor_down(int const out_fd, size_t const rows)
 {
     return move_physical_cursor(out_fd, rows, 'B');
+}
+
+bool terminal_move_physical_cursor_right(int const out_fd, size_t const columns)
+{
+    return move_physical_cursor(out_fd, columns, 'C');
+}
+
+bool terminal_move_physical_cursor_left(int const out_fd, size_t const columns)
+{
+    return move_physical_cursor(out_fd, columns, 'D');
 }
 
 void terminal_delete_to_end_of_line(int const out_fd)
