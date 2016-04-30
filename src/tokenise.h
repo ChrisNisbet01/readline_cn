@@ -10,6 +10,7 @@ size_t tokens_get_current_token_index(tokens_st const * const tokens);
 char const * tokens_get_current_token(tokens_st const * const tokens);
 size_t tokens_get_num_tokens(tokens_st const * const tokens);
 char const * tokens_get_token_at_index(tokens_st const * const tokens, size_t const index);
+bool tokens_index_is_within_current_token(tokens_st const * const tokens, size_t const index);
 
 void tokens_free(tokens_st * const tokens);
 

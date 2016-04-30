@@ -265,7 +265,7 @@ static args_st * get_args_from_tokens(tokens_st const * const tokens)
     args_st * args;
     size_t const token_count = tokens_get_num_tokens(tokens);
 
-    args = args_alloc(tokens_get_num_tokens(tokens) + 1);   /* include 1 for the NULL terminator */
+    args = args_alloc(token_count + 1);   /* include 1 for the NULL terminator */
     if (args == NULL)
     {
         goto done;

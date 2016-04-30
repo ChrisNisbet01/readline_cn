@@ -186,6 +186,30 @@ char const * tokens_get_current_token(tokens_st const * const tokens)
     return current_token;
 }
 
+bool tokens_index_is_within_current_token(tokens_st const * const tokens, size_t const index)
+{
+    bool is_within_token;
+    token_st const * current_token;
+
+    if (tokens == NULL)
+    {
+        is_within_token = false;
+        goto done;
+    }
+
+    current_token = &tokens->token_array[tokens->current_token_index];
+    if (current_token == NULL)
+    {
+        is_within_token = false;
+        goto done;
+    }
+
+    is_within_token = (index + current_token->start_index) <= current_token->end_index;
+
+done:
+    return is_within_token;
+}
+
 size_t tokens_get_num_tokens(tokens_st const * const tokens)
 {
     size_t count;

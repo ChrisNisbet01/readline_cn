@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 /* Split a pathname into allocated directory and trailing filename parts. */
-int split_path(char const * const path, char const * * const dir_part, char const * * const file_part, size_t * const completion_start_index)
+int split_path(char const * const path, char const * * const dir_part, char const * * const file_part, size_t * const file_part_start)
 {
     /* Not using dirname() and basename() because they don't 
      * return strings suitable for using with opendir(). 
@@ -65,9 +65,9 @@ done:
     {
         *dir_part = dpart;
         *file_part = fpart;
-        if (completion_start_index != NULL)
+        if (file_part_start != NULL)
         {
-            *completion_start_index = start_of_fpart;
+            *file_part_start = start_of_fpart;
         }
     }
     else

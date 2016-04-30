@@ -22,6 +22,12 @@ static void readline_context_free(readline_st * const readline_ctx)
     free(readline_ctx);
 }
 
+void toggle_insert_mode(readline_st * const readline_ctx)
+{
+    readline_ctx->insert_mode = !readline_ctx->insert_mode;
+    /* TODO - Change the cursor shape according to current mode. */
+}
+
 readline_st * readline_context_create(void * const user_context, 
                                       completion_callback_fn const completion_callback,
                                       help_callback_fn const help_callback,

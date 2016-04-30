@@ -23,3 +23,4 @@ examples/.deps/*
 autom4te.cache/*
 
 /test-driver
+*.0.tar.xz

@@ -23,4 +23,6 @@ struct private_completion_context_st
     completion_context_st public_context;
 }; 
 
+void toggle_insert_mode(readline_st * const readline_ctx);
+
 #endif /* __READLINE_PRIVATE_H__ */

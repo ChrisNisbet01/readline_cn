@@ -6,6 +6,7 @@
 #include "print_words_in_columns.h"
 #include "readline_context.h"
 #include "terminal.h"
+#include "utils.h"
 
 #include <stddef.h>
 #include <string.h>
@@ -19,17 +20,6 @@ struct private_help_context_st
 
     help_context_st public_context;
 }; 
-
-/**
- * container_of - cast a member of a structure out to the containing structure
- * @ptr:        the pointer to the member.
- * @type:       the type of the container struct this is embedded in.
- * @member:     the name of the member within the struct.
- *
- */
-#define container_of(ptr, type, member) ({                      \
-        const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
-        (type *)( (char *)__mptr - offsetof(type,member) );})
 
 #define GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(help_context) \
     container_of(help_context, private_help_context_st, public_context)

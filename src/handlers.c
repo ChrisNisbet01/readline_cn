@@ -60,13 +60,7 @@ static void handle_alt_d(readline_st * const readline_ctx)
 
 static void handle_tab(readline_st * const readline_ctx)
 {
-    /* Word completion isn't performed if the user has requested 
-     * to mask the input characters. 
-     */
-    if (readline_ctx->mask_character == '\0')
-    {
-        do_word_completion(readline_ctx);
-    }
+    do_word_completion(readline_ctx);
 }
 
 static void handle_home_key(readline_st * const readline_ctx)
@@ -139,8 +133,7 @@ static void handle_left_arrow(readline_st * const readline_ctx)
 
 static void handle_insert_key(readline_st * const readline_ctx)
 {
-    readline_ctx->insert_mode = !readline_ctx->insert_mode;
-    /* FIXME - Change the cursor shape according to current mode. */
+    toggle_insert_mode(readline_ctx);
 }
 
 void handle_backspace(readline_st * const readline_ctx)

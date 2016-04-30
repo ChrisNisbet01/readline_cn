@@ -5,22 +5,12 @@
 #include "common_prefix_length.h"
 #include "print_words_in_columns.h"
 #include "readline_context.h"
+#include "utils.h"
 
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-/**
- * container_of - cast a member of a structure out to the containing structure
- * @ptr:        the pointer to the member.
- * @type:       the type of the container struct this is embedded in.
- * @member:     the name of the member within the struct.
- *
- */
-#define container_of(ptr, type, member) ({                      \
-        const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
-        (type *)( (char *)__mptr - offsetof(type,member) );})
 
 #define GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(completion_context) \
     container_of(completion_context, private_completion_context_st, public_context)
@@ -91,9 +81,16 @@ static void set_completion_start(completion_context_st * const completion_contex
 {
     private_completion_context_st * const private_completion_context =
         GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(completion_context);
+    tokens_st * const tokens = private_completion_context->tokens;
 
-    // TODO - Validate completion_start_index.
-    private_completion_context->completion_start_index = completion_start_index;
+    /* completion_start_index is _not_ an index within the line; 
+     * it is an index within the current token, so should be in the 
+     * range 0 -> <current token length>.
+     */
+    if (tokens_index_is_within_current_token(tokens, completion_start_index))
+    {
+        private_completion_context->completion_start_index = completion_start_index;
+    }
 
 }
 
@@ -146,7 +143,7 @@ static int qsort_string_compare(const void * p1, const void * p2)
     char const * const * const v1 = (char const * const *)p1;
     char const * const * const v2 = (char const * const *)p2;
 
-    return strcmp( *v1, *v2);
+    return strcmp(*v1, *v2);
 }
 
 static void private_completion_context_teardown(private_completion_context_st * const private_completion_context)
@@ -187,6 +184,9 @@ static bool private_completion_context_init(line_context_st * const line_ctx,
         goto done;
     }
 
+    /* dup() the file descriptor because it will be closed during 
+     * completion. 
+     */
     completion_context->write_back_fd = dup(line_ctx->terminal_fd);
 
     completion_context->possible_word_add_fn = possible_word_add;
@@ -309,29 +309,38 @@ static void private_completion_context_process_results(line_context_st * const l
 
 void do_word_completion(readline_st * const readline_ctx)
 {
-    if (readline_ctx->completion_callback != NULL)
+    int characters_were_printed;
+
+    line_context_st * const line_ctx = &readline_ctx->line_context;
+    private_completion_context_st private_completion_context;
+
+    /* Word completion isn't performed if the user has requested 
+     * to mask the input characters. 
+     */
+    if (readline_ctx->mask_character != '\0')
     {
-        int characters_were_printed;
-
-        line_context_st * const line_ctx = &readline_ctx->line_context;
-        private_completion_context_st private_completion_context;
-
-        if (!private_completion_context_init(line_ctx,
-                                             &private_completion_context,
-                                             readline_ctx->field_separators))
-        {
-            goto done;
-        }
-
-        characters_were_printed = readline_ctx->completion_callback(&private_completion_context.public_context,
-                                          readline_ctx->user_context);
-
-        private_completion_context_process_results(line_ctx,
-                                                   &private_completion_context,
-                                                   characters_were_printed > 0);
-
-        private_completion_context_teardown(&private_completion_context);
+        goto done;
     }
+    if (readline_ctx->completion_callback == NULL)
+    {
+        goto done;
+    }
+
+    if (!private_completion_context_init(line_ctx,
+                                         &private_completion_context,
+                                         readline_ctx->field_separators))
+    {
+        goto done;
+    }
+
+    characters_were_printed = readline_ctx->completion_callback(&private_completion_context.public_context,
+                                      readline_ctx->user_context);
+
+    private_completion_context_process_results(line_ctx,
+                                               &private_completion_context,
+                                               characters_were_printed > 0);
+
+    private_completion_context_teardown(&private_completion_context);
 
 done:
     return;
