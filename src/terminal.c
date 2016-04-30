@@ -52,6 +52,19 @@ static bool wait_for_file_to_be_readable(int const fd, unsigned int const max_se
     return file_is_readable;
 }
 
+static int read_char(int const in_fd, char * const ch)
+{
+    int r;
+
+    do
+    {
+        r = read(in_fd, ch, sizeof *ch);
+    } 
+    while (r == -1 && errno == EINTR);
+
+    return r;
+}
+
 tty_get_result_t tty_get(int const in_fd, unsigned int const maximum_seconds_to_wait, int * const character_read)
 {
     int read_result;
@@ -67,11 +80,7 @@ tty_get_result_t tty_get(int const in_fd, unsigned int const maximum_seconds_to_
         }
     }
 
-    do
-    {
-        r = read(in_fd, &ch, sizeof ch);
-    } 
-    while (r == -1 && errno == EINTR);
+    r = read_char(in_fd, &ch);
 
     if (r != 1)
     {
