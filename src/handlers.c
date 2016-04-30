@@ -5,6 +5,7 @@
 #include "help.h"
 
 #include <string.h>
+#include <ctype.h>
 
 static readline_status_t handle_enter(readline_st * const readline_ctx)
 {
@@ -56,6 +57,81 @@ done:
     return;
 }
 
+static bool is_word_separator(char const ch)
+{
+    /* XXX - Also check user supplied field separators? */
+    return isalnum((int)ch) == 0;
+}
+
+static void move_left_to_beginning_of_word(readline_st * const readline_ctx)
+{
+    line_context_st * const line_ctx = &readline_ctx->line_context;
+    size_t index;
+
+    /* TODO - use more than just space (e.g. '/') as word 
+     * separators. 
+     */
+    if (line_ctx->cursor_index > 0)
+    {
+        /* Skip left passed whitespace. */
+        for (index = line_ctx->cursor_index - 1; index != 0; index--)
+        {
+            if (!is_word_separator(line_ctx->buffer[index]))
+            {
+                break;
+            }
+        }
+        /* Skip left until the next character to the left is 
+         * whitespace. 
+         */
+        for (; index > 0; index--)
+        {
+            if (is_word_separator(line_ctx->buffer[index - 1]))
+            {
+                break;
+            }
+        }
+        if (index != line_ctx->cursor_index)
+        {
+            move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index - index);
+        }
+    }
+}
+
+static void move_right_to_end_of_word(readline_st * const readline_ctx)
+{
+    line_context_st * const line_ctx = &readline_ctx->line_context;
+    size_t index;
+
+    /* TODO - use more than just space (e.g. '/') as word 
+     * separators. 
+     */
+    if (line_ctx->cursor_index < line_ctx->line_length)
+    {
+        /* Move right passed whitespace. */
+        for (index = line_ctx->cursor_index + 1; index != 0; index++)
+        {
+            if (!is_word_separator(line_ctx->buffer[index]))
+            {
+                break;
+            }
+        }
+        /* Move right until we hit whitespace. 
+         */
+        for (; index < (line_ctx->line_length); index++)
+        {
+            if (is_word_separator(line_ctx->buffer[index]))
+            {
+                break;
+            }
+        }
+        if (index != line_ctx->cursor_index)
+        {
+            move_cursor_right_n_columns(line_ctx, index - line_ctx->cursor_index);
+        }
+    }
+}
+
 static void handle_control_t(readline_st * const readline_ctx)
 {
     transpose_characters(readline_ctx);
@@ -64,6 +140,16 @@ static void handle_control_t(readline_st * const readline_ctx)
 static void handle_control_w(readline_st * const readline_ctx)
 {
     // TODO: Delete the word to the left.
+}
+
+static void handle_control_left(readline_st * const readline_ctx)
+{
+    move_left_to_beginning_of_word(readline_ctx);
+}
+
+static void handle_control_right(readline_st * const readline_ctx)
+{
+    move_right_to_end_of_word(readline_ctx);
 }
 
 static void handle_tab(readline_st * const readline_ctx)
@@ -98,7 +184,7 @@ readline_status_t handle_control_char(readline_st * const readline_ctx, int cons
         case CTL('W'):
             handle_control_w(readline_ctx);
             break;
-        default:  /* silently ignore */
+        default:  /* silently ignore any control character that isn't supported. */
             break;
     }
 
@@ -293,6 +379,27 @@ static void handle_escape_left_bracket_1(readline_st * const readline_ctx)
                             break;
                         case 'D':
                             /* Shift + left arrow. */
+                            break;
+                    }
+                    break;
+                case '5':
+                    ch = '\0';
+                    tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+                    switch (ch)
+                    {
+                        case 'A':
+                            /* CTRL + up arrow. */
+                            break;
+                        case 'B':
+                            /* CTRL + down arrow. */
+                            break;
+                        case 'C':
+                            /* CTRL + right arrow. */
+                            handle_control_right(readline_ctx);
+                            break;
+                        case 'D':
+                            /* CTRL + left arrow. */
+                            handle_control_left(readline_ctx);
                             break;
                     }
                     break;
