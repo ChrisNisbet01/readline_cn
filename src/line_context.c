@@ -19,7 +19,10 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
     char const char_to_write = line_ctx->mask_character != '\0' ? line_ctx->mask_character : ch;
     terminal_cursor_st * const terminal_cursor = &line_ctx->terminal_cursor;
 
-    terminal_put(terminal_cursor, char_to_write, line_ctx->terminal_fd);
+    terminal_put(terminal_cursor, 
+                 char_to_write, 
+                 line_ctx->terminal_fd, 
+                 line_ctx->terminal_width);
     /* if in insert mode, any chars after the one just written
      * will need to be written out.
      */
@@ -34,7 +37,8 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
             terminal_puts(terminal_cursor, 
                           &line_ctx->buffer[line_ctx->cursor_index], 
                           line_ctx->mask_character,
-                          line_ctx->terminal_fd);
+                          line_ctx->terminal_fd,
+                          line_ctx->terminal_width);
             /* Update the current edit position to match the physical 
              * cursor position. 
              */
@@ -153,12 +157,14 @@ void redisplay_line(line_context_st * const line_ctx)
     terminal_puts(terminal_cursor, 
                   line_ctx->prompt, 
                   '\0', 
-                  line_ctx->terminal_fd);
+                  line_ctx->terminal_fd,
+                  line_ctx->terminal_width);
 
     terminal_puts(terminal_cursor, 
                   line_ctx->buffer, 
                   line_ctx->mask_character, 
-                  line_ctx->terminal_fd);
+                  line_ctx->terminal_fd,
+                  line_ctx->terminal_width);
     /* The terminal cursor will now be at the end of the line, so 
      * update the editing position to match. 
      */
@@ -189,18 +195,18 @@ bool line_context_init(line_context_st * const line_context,
         init_ok = false;
         goto done;
     }
-    line_context->terminal_fd = terminal_fd;
     line_context->line_length = 0;
     line_context->buffer[line_context->line_length] = '\0';
     line_context->maximum_line_length = maximum_line_length;
+    line_context->cursor_index = 0; 
 
-    line_context->cursor_index = 0;
+    line_context->terminal_fd = terminal_fd;
     line_context->terminal_width = terminal_width;
 
     line_context->mask_character = mask_character;
     line_context->prompt = prompt;
 
-    terminal_cursor_init(&line_context->terminal_cursor, line_context->terminal_width);
+    terminal_cursor_init(&line_context->terminal_cursor);
 
     init_ok = true;
 
@@ -225,7 +231,8 @@ void move_cursor_right_n_columns(line_context_st * const line_ctx, size_t column
 
         terminal_move_cursor_right_n_columns(&line_ctx->terminal_cursor, 
                                              columns_to_move, 
-                                             line_ctx->terminal_fd);
+                                             line_ctx->terminal_fd,
+                                             line_ctx->terminal_width);
 
     }
 }
@@ -240,7 +247,8 @@ void move_cursor_left_n_columns(line_context_st * const line_ctx, size_t const c
 
         terminal_move_cursor_left_n_columns(&line_ctx->terminal_cursor, 
                                             columns_to_move, 
-                                            line_ctx->terminal_fd);
+                                            line_ctx->terminal_fd,
+                                            line_ctx->terminal_width);
     }
 }
 
@@ -278,17 +286,22 @@ void delete_char_to_the_right(line_context_st * const line_ctx, bool const updat
             terminal_puts(terminal_cursor, 
                           &line_ctx->buffer[line_ctx->cursor_index], 
                           line_ctx->mask_character,
-                          line_ctx->terminal_fd);
+                          line_ctx->terminal_fd,
+                          line_ctx->terminal_width);
             /* Remove the remaining char from the end of the line by 
              * replacing it with a space. 
              */
-            terminal_put(terminal_cursor, ' ', line_ctx->terminal_fd);
+            terminal_put(terminal_cursor, 
+                         ' ', 
+                         line_ctx->terminal_fd,
+                         line_ctx->terminal_width);
             /* Move the terminal cursor back to match the editing 
              * position. 
              */
             terminal_move_cursor_left_n_columns(terminal_cursor, 
                                                 trailing_chars,
-                                                line_ctx->terminal_fd);
+                                                line_ctx->terminal_fd,
+                                                line_ctx->terminal_width);
         }
     }
 }

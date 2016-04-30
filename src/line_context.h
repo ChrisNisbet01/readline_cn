@@ -7,7 +7,6 @@
 typedef struct terminal_cursor_st terminal_cursor_st;
 struct terminal_cursor_st
 {
-    size_t terminal_width;
     size_t row;
     size_t column;
     size_t num_rows; /* The number of rows on the terminal the line occupies. */

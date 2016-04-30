@@ -114,7 +114,8 @@ static readline_status_t edit_input(readline_st * const readline_ctx)
         terminal_puts(&line_ctx->terminal_cursor, 
                       line_ctx->prompt, 
                       '\0',
-                      line_ctx->terminal_fd);
+                      line_ctx->terminal_fd,
+                      line_ctx->terminal_width);
     }
 
     do
@@ -136,7 +137,6 @@ static bool readline_init(readline_st * const readline_ctx,
 
     readline_ctx->maximum_seconds_to_wait_for_char = timeout_seconds;
 
-    readline_ctx->terminal_was_modified = false;
     if (readline_ctx->is_a_terminal)
     {
         terminal_width = terminal_get_width(readline_ctx->out_fd);
@@ -148,7 +148,8 @@ static bool readline_init(readline_st * const readline_ctx,
     }
     else
     {
-        terminal_width = 0;
+        readline_ctx->terminal_was_modified = false;
+        terminal_width = 0; /* Should be unused in non-tty mode. */
     }
 
     free_saved_line(&readline_ctx->saved_line); 
