@@ -193,6 +193,7 @@ static bool private_completion_context_init(line_context_st * const line_ctx,
     /* dup() the file descriptor because it will be closed during 
      * completion. 
      */
+    /* XXX - Do error checking. */
     completion_context->write_back_fd = dup(line_ctx->terminal_fd);
 
     completion_context->possible_word_add_fn = possible_word_add;
