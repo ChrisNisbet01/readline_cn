@@ -85,7 +85,7 @@ static bool private_help_context_init(private_help_context_st * const private_he
 
     memset(private_help_context, 0, sizeof *private_help_context);
 
-    private_help_context->tokens = tokenise_line(line_ctx->buffer, 0, line_ctx->cursor_index, true, field_separators);
+    private_help_context->tokens = tokenise_line(line_ctx->edit_buffer, 0, line_ctx->edit_index, true, field_separators);
     if (private_help_context->tokens == NULL)
     {
         init_ok = false;

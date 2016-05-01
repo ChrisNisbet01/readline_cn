@@ -22,11 +22,11 @@ typedef struct line_context_st line_context_st;
 struct line_context_st
 {
     size_t size_increment;
-    char * buffer; /* Storage for the line being edited. */
+    char * edit_buffer; /* Storage for the line being edited. */
     size_t buffer_size; /* Amount of memory alloced for the line. */
     size_t line_length; /* Current length of the line. */
     size_t maximum_line_length;
-    size_t cursor_index; /* Location of the cursor in the line. */
+    size_t edit_index; /* Location of the cursor in the line. */
     int terminal_fd; /* The file descriptor to write to when updating the terminal. */
     size_t terminal_width;
     int mask_character; /* if non-zero, the character to write to the terminal instead of the actual character entered. */
@@ -55,8 +55,8 @@ void write_string(line_context_st * const line_ctx, char const * const string, b
 void complete_word(line_context_st * const line_ctx, char const * const completion, bool const update_terminal);
 void replace_edit_line(line_context_st * const line_ctx, char const * const replacement);
 void redisplay_line(line_context_st * const line_ctx);
-void free_saved_line(char const * * const saved_line);
-void save_current_line(line_context_st * const line_ctx, char const * * const destination); 
+void free_saved_string(char const * * const saved_line);
+void save_string(line_context_st * const line_ctx, char const * * const destination); 
 void delete_from_cursor_to_end(line_context_st * const line_ctx);
 void delete_from_cursor_to_start(line_context_st * const line_ctx); 
 void transpose_characters(line_context_st * const line_ctx);

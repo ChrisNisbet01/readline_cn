@@ -24,7 +24,7 @@ static void readline_context_free(readline_st * const readline_ctx)
     free((void *)readline_ctx->field_separators);
     line_context_teardown(&readline_ctx->line_context);
     history_free(readline_ctx->history);
-    free_saved_line(&readline_ctx->saved_line);
+    free_saved_string(&readline_ctx->saved_line);
     free(readline_ctx);
 }
 

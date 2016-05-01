@@ -183,7 +183,7 @@ static bool private_completion_context_init(line_context_st * const line_ctx,
         init_ok = false;
         goto done;
     }
-    private_completion_context->tokens = tokenise_line(line_ctx->buffer, 0, line_ctx->cursor_index, true, field_separators);
+    private_completion_context->tokens = tokenise_line(line_ctx->edit_buffer, 0, line_ctx->edit_index, true, field_separators);
     if (private_completion_context->tokens == NULL)
     {
         init_ok = false;

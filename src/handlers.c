@@ -20,7 +20,7 @@ static readline_status_t handle_enter(readline_st * const readline_ctx)
     /* Move the cursor to the end of the line so that any output 
      * from the application will go after this line. 
      */
-    move_cursor_right_n_columns(line_ctx, line_ctx->line_length - line_ctx->cursor_index);
+    move_cursor_right_n_columns(line_ctx, line_ctx->line_length - line_ctx->edit_index);
     tty_put(line_ctx->terminal_fd, '\n');
 
     return readline_status_done;
@@ -73,14 +73,14 @@ static void handle_home_key(readline_st * const readline_ctx)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;
 
-    move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index);
+    move_cursor_left_n_columns(line_ctx, line_ctx->edit_index);
 }
 
 static void handle_end_key(readline_st * const readline_ctx)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;
 
-    move_cursor_right_n_columns(line_ctx, line_ctx->line_length - line_ctx->cursor_index);
+    move_cursor_right_n_columns(line_ctx, line_ctx->line_length - line_ctx->edit_index);
 }
 
 readline_status_t handle_control_char(readline_st * const readline_ctx, int const ch)
@@ -167,8 +167,7 @@ static void handle_up_arrow(readline_st * const readline_ctx)
         /* save the current line in case the user returns to the top 
          * of the history 
          */
-        save_current_line(line_ctx, &readline_ctx->saved_line);
-
+        save_string(line_ctx, &readline_ctx->saved_line);
     }
     historic_line = history_get_older_entry(history);
 
@@ -176,21 +175,6 @@ static void handle_up_arrow(readline_st * const readline_ctx)
     {
         replace_edit_line(line_ctx, historic_line);
     }
-
-}
-
-static void handle_shift_up(readline_st * const readline_ctx)
-{
-    line_context_st * const line_ctx = &readline_ctx->line_context;
-
-    move_cursor_left_n_columns(line_ctx, line_ctx->terminal_width);
-}
-
-static void handle_shift_down(readline_st * const readline_ctx)
-{
-    line_context_st * const line_ctx = &readline_ctx->line_context;
-
-    move_cursor_right_n_columns(line_ctx, line_ctx->terminal_width);
 }
 
 static void handle_down_arrow(readline_st * const readline_ctx)
@@ -211,7 +195,7 @@ static void handle_down_arrow(readline_st * const readline_ctx)
                  * replaced it, we'd get the side-effect that the current 
                  * cursor editing position would jump to the end of the line. 
                  */
-                if (strcmp(line_ctx->buffer, readline_ctx->saved_line) != 0)
+                if (strcmp(line_ctx->edit_buffer, readline_ctx->saved_line) != 0)
                 {
                     replacement_line = readline_ctx->saved_line;
                 }
@@ -226,9 +210,23 @@ static void handle_down_arrow(readline_st * const readline_ctx)
         replace_edit_line(line_ctx, replacement_line);
         if (replacement_line == readline_ctx->saved_line)
         {
-            free_saved_line(&readline_ctx->saved_line);
+            free_saved_string(&readline_ctx->saved_line);
         }
     }
+}
+
+static void handle_shift_up(readline_st * const readline_ctx)
+{
+    line_context_st * const line_ctx = &readline_ctx->line_context;
+
+    move_cursor_left_n_columns(line_ctx, line_ctx->terminal_width);
+}
+
+static void handle_shift_down(readline_st * const readline_ctx)
+{
+    line_context_st * const line_ctx = &readline_ctx->line_context;
+
+    move_cursor_right_n_columns(line_ctx, line_ctx->terminal_width);
 }
 
 static readline_status_t handle_escape_o(readline_st * const readline_ctx)
@@ -261,6 +259,73 @@ done:
     return status;
 }
 
+static void handle_escape_left_bracket_1_semicolon_2(readline_st * const readline_ctx)
+{
+    int ch;
+
+    ch = '\0';
+    tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+    switch (ch)
+    {
+        case 'A':
+            /* Shift + up arrow. */
+            handle_shift_up(readline_ctx);
+            break;
+        case 'B':
+            /* Shift + down arrow. */
+            handle_shift_down(readline_ctx);
+            break;
+        case 'C':
+            /* Shift + right arrow. */
+            break;
+        case 'D':
+            /* Shift + left arrow. */
+            break;
+    }
+}
+
+static void handle_escape_left_bracket_1_semicolon_5(readline_st * const readline_ctx)
+{
+    int ch;
+
+    ch = '\0';
+    tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+    switch (ch)
+    {
+        case 'A':
+            /* CTRL + up arrow. */
+            break;
+        case 'B':
+            /* CTRL + down arrow. */
+            break;
+        case 'C':
+            /* CTRL + right arrow. */
+            handle_control_right(readline_ctx);
+            break;
+        case 'D':
+            /* CTRL + left arrow. */
+            handle_control_left(readline_ctx);
+            break;
+    }
+}
+
+static void handle_escape_left_bracket_1_semicolon(readline_st * const readline_ctx)
+{
+    int ch;
+
+    ch = '\0';
+    tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+    switch (ch)
+    {
+        case '2':
+            handle_escape_left_bracket_1_semicolon_2(readline_ctx);
+            break;
+        case '5':
+            handle_escape_left_bracket_1_semicolon_5(readline_ctx);
+            break;
+    }
+}
+
 static void handle_escape_left_bracket_1(readline_st * const readline_ctx)
 {
     int ch;
@@ -273,55 +338,30 @@ static void handle_escape_left_bracket_1(readline_st * const readline_ctx)
             handle_home_key(readline_ctx);
             break;
         case ';':
-        {
-            ch = '\0';
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
-            switch (ch)
-            {
-                case '2':
-                    ch = '\0';
-                    tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
-                    switch (ch)
-                    {
-                        case 'A':
-                            /* Shift + up arrow. */
-                            handle_shift_up(readline_ctx);
-                            break;
-                        case 'B':
-                            /* Shift + down arrow. */
-                            handle_shift_down(readline_ctx);
-                            break;
-                        case 'C':
-                            /* Shift + right arrow. */
-                            break;
-                        case 'D':
-                            /* Shift + left arrow. */
-                            break;
-                    }
-                    break;
-                case '5':
-                    ch = '\0';
-                    tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
-                    switch (ch)
-                    {
-                        case 'A':
-                            /* CTRL + up arrow. */
-                            break;
-                        case 'B':
-                            /* CTRL + down arrow. */
-                            break;
-                        case 'C':
-                            /* CTRL + right arrow. */
-                            handle_control_right(readline_ctx);
-                            break;
-                        case 'D':
-                            /* CTRL + left arrow. */
-                            handle_control_left(readline_ctx);
-                            break;
-                    }
-                    break;
-            }
+            handle_escape_left_bracket_1_semicolon(readline_ctx);
             break;
+    }
+}
+
+static void handle_escape_left_bracket_3(readline_st * const readline_ctx)
+{
+    int ch = '\0';
+
+    tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+    if (ch == '~')
+    {
+        handle_delete(readline_ctx);
+    }
+    else if (ch == ';')
+    {
+        tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+        if (ch == '5')
+        {
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+            if (ch == '~')
+            {
+                /* CTRL-DEL */
+            }
         }
     }
 }
@@ -330,6 +370,7 @@ static readline_status_t handle_escape_left_bracket(readline_st * const readline
 {
     readline_status_t status;
     int escape_command_char;
+    int ch;
 
     escape_command_char = read_char_from_input_descriptor(readline_ctx->in_fd,
                                                           readline_ctx->maximum_seconds_to_wait_for_char,
@@ -345,40 +386,39 @@ static readline_status_t handle_escape_left_bracket(readline_st * const readline
             handle_escape_left_bracket_1(readline_ctx);
             break;
         case '2':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
-            handle_insert_key(readline_ctx);
-            break;
-        case '3':
-        {
-            int ch = '\0';
-
+            ch = '\0';
             tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
             if (ch == '~')
             {
-                handle_delete(readline_ctx);
-            }
-            else if (ch == ';')
-            {
-                tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
-                if (ch == '5')
-                {
-                    tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
-                    /* CTRL-DEL */
-                }
+                handle_insert_key(readline_ctx);
             }
             break;
-        }
+        case '3':
+            handle_escape_left_bracket_3(readline_ctx);
+            break;
         case '4':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
-            handle_end_key(readline_ctx);
+            ch = '\0';
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+            if (ch == '~')
+            {
+                handle_end_key(readline_ctx);
+            }
             break;
         case '5':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
-            // TODO: handle_page_up(readline_ctx);
+            ch = '\0';
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+            if (ch == '~')
+            {
+                // TODO: handle_page_up(readline_ctx);
+            }
             break;
         case '6':
-            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, NULL);
-            // TODO: handle_page_down(readline_ctx);
+            ch = '\0';
+            tty_get(readline_ctx->in_fd, readline_ctx->maximum_seconds_to_wait_for_char, &ch);
+            if (ch == '~')
+            {
+                // TODO: handle_page_down(readline_ctx);
+            }
             break;
         case 'A':
             handle_up_arrow(readline_ctx);

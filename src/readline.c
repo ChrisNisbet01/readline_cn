@@ -158,7 +158,7 @@ static bool readline_init(readline_st * const readline_ctx,
         terminal_width = 0; /* Should be unused in non-tty mode. */
     }
 
-    free_saved_line(&readline_ctx->saved_line); 
+    free_saved_string(&readline_ctx->saved_line); 
 
     if (!line_context_init(line_ctx,
                            INITIAL_LINE_BUFFER_SIZE,
@@ -179,6 +179,7 @@ done:
     return readline_prepared;
 }
 
+/* Called at the end of a line edit. */
 static void readline_cleanup(readline_st * const readline_ctx)
 {
     line_context_st * const line_ctx = &readline_ctx->line_context;
@@ -189,7 +190,45 @@ static void readline_cleanup(readline_st * const readline_ctx)
     }
 
     line_context_teardown(line_ctx);
-    free_saved_line(&readline_ctx->saved_line);
+    free_saved_string(&readline_ctx->saved_line);
+}
+
+static readline_result_t readline_status_to_result(readline_status_t const readline_status, bool * const should_return_line)
+{
+    readline_result_t readline_result;
+    bool return_line = false;
+
+    switch (readline_status)
+    {
+        case readline_status_done:
+        {
+            return_line = true;
+            readline_result = readline_result_success;
+            break;
+        }
+        case readline_status_continue:  /* Shouldn't happen, but if it does, call it an error. */
+            /* drop through */
+        case readline_status_error:
+            readline_result = readline_result_error;
+            break;
+        case readline_status_eof:
+            return_line = true;
+            readline_result = readline_result_eof;
+            break;
+        case readline_status_ctrl_c:
+            readline_result = readline_result_ctrl_c;
+            break;
+        case readline_status_timed_out:
+            readline_result = readline_result_timed_out;
+            break;
+        default:
+            /* Here just to prevent a compiler warning. */
+            readline_result = readline_result_error;
+            break;
+    }
+
+    *should_return_line = return_line;
+    return readline_result;
 }
 
 readline_result_t readline(readline_st * const readline_ctx, unsigned int const timeout_seconds, char const * const prompt, char * * const line)
@@ -207,34 +246,7 @@ readline_result_t readline(readline_st * const readline_ctx, unsigned int const 
 
     readline_status = edit_input(readline_ctx);
 
-    switch(readline_status)
-    {
-        case readline_status_done:
-        {
-            should_return_line = true;
-            readline_result = readline_result_success;
-            break;
-        }
-        case readline_status_continue:  /* Shouldn't happen, but if it does, call it an error. */
-            /* drop through */
-        case readline_status_error:
-            readline_result = readline_result_error;
-            break;
-        case readline_status_eof:
-            should_return_line = true;
-            readline_result = readline_result_eof;
-            break;
-        case readline_status_ctrl_c:
-            readline_result = readline_result_ctrl_c;
-            break;
-        case readline_status_timed_out:
-            readline_result = readline_result_timed_out;
-            break;
-        default:
-            /* Here just to prevent a compiler warning. */
-            readline_result = readline_result_error;
-            break;
-    }
+    readline_result = readline_status_to_result(readline_status, &should_return_line);
 
 done:
     if (should_return_line)
@@ -245,10 +257,10 @@ done:
 
         if (should_add_to_history)
         {
-            history_add(readline_ctx->history, line_ctx->buffer);
+            history_add(readline_ctx->history, line_ctx->edit_buffer);
         }
-        *line = line_ctx->buffer;
-        line_ctx->buffer = NULL;
+        *line = line_ctx->edit_buffer;
+        line_ctx->edit_buffer = NULL;
     }
     else
     {

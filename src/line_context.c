@@ -34,21 +34,21 @@ static void terminal_write_char(line_context_st * const line_ctx, int const ch, 
      */
     if (insert_mode)
     {
-        size_t const trailing_length = line_ctx->line_length - line_ctx->cursor_index;
+        size_t const trailing_length = line_ctx->line_length - line_ctx->edit_index;
 
         if (trailing_length > 0)
         {
-            size_t const original_cursor_index = line_ctx->cursor_index;
+            size_t const original_cursor_index = line_ctx->edit_index;
 
             terminal_puts(terminal_cursor, 
-                          &line_ctx->buffer[line_ctx->cursor_index], 
+                          &line_ctx->edit_buffer[line_ctx->edit_index], 
                           line_ctx->mask_character,
                           line_ctx->terminal_fd,
                           line_ctx->terminal_width);
             /* Update the current edit position to match the physical 
              * cursor position. 
              */
-            line_ctx->cursor_index = strlen(line_ctx->buffer); 
+            line_ctx->edit_index = strlen(line_ctx->edit_buffer); 
             /* And now restore edit position and cursor back to the original
              * editing location. 
              */
@@ -78,8 +78,8 @@ static bool check_line_buffer_size(line_context_st * const line_ctx, size_t cons
 
     new_buffer_size = line_ctx->line_length + 1 + space_required + line_ctx->size_increment;
 
-    line_ctx->buffer = realloc(line_ctx->buffer, new_buffer_size);
-    if (line_ctx->buffer == NULL)
+    line_ctx->edit_buffer = realloc(line_ctx->edit_buffer, new_buffer_size);
+    if (line_ctx->edit_buffer == NULL)
     {
         line_ctx->buffer_size = 0;
         buffer_size_ok = false;
@@ -95,8 +95,8 @@ done:
 static bool line_ctx_write_char(line_context_st * const line_ctx, int const ch, bool const insert_mode)
 {
     bool char_was_written;
-    size_t const trailing_length = line_ctx->line_length - line_ctx->cursor_index;
-    bool const line_length_will_increase = insert_mode || (line_ctx->cursor_index >= line_ctx->line_length);
+    size_t const trailing_length = line_ctx->line_length - line_ctx->edit_index;
+    bool const line_length_will_increase = insert_mode || (line_ctx->edit_index >= line_ctx->line_length);
 
     if (line_length_will_increase)
     {
@@ -111,18 +111,18 @@ static bool line_ctx_write_char(line_context_st * const line_ctx, int const ch, 
     {
         if (trailing_length > 0)
         {
-            memmove(&line_ctx->buffer[line_ctx->cursor_index + 1], &line_ctx->buffer[line_ctx->cursor_index], trailing_length);
+            memmove(&line_ctx->edit_buffer[line_ctx->edit_index + 1], &line_ctx->edit_buffer[line_ctx->edit_index], trailing_length);
         }
     }
 
-    line_ctx->buffer[line_ctx->cursor_index] = ch;
-    line_ctx->cursor_index++;
+    line_ctx->edit_buffer[line_ctx->edit_index] = ch;
+    line_ctx->edit_index++;
 
     if (line_length_will_increase)
     {
         line_ctx->line_length++;
         /* keep the line NUL terminated */
-        line_ctx->buffer[line_ctx->line_length] = '\0';
+        line_ctx->edit_buffer[line_ctx->line_length] = '\0';
     }
     char_was_written = true;
 
@@ -132,28 +132,28 @@ done:
 
 void delete_from_cursor_to_start(line_context_st * const line_ctx)
 {
-    delete_chars_to_the_left(line_ctx, line_ctx->cursor_index);
+    delete_chars_to_the_left(line_ctx, line_ctx->edit_index);
 }
 
 void delete_from_cursor_to_end(line_context_st * const line_ctx)
 {
-    line_ctx->line_length = line_ctx->cursor_index;
-    line_ctx->buffer[line_ctx->line_length] = '\0'; 
+    line_ctx->line_length = line_ctx->edit_index;
+    line_ctx->edit_buffer[line_ctx->line_length] = '\0'; 
 
     terminal_delete_line_from_cursor_to_end(&line_ctx->terminal_cursor, line_ctx->terminal_fd);
 }
 
 static void restore_cursor_position(line_context_st * const line_ctx, size_t const original_cursor_position)
 {
-    if (line_ctx->cursor_index > original_cursor_position)
+    if (line_ctx->edit_index > original_cursor_position)
     {
-        move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index - original_cursor_position);
+        move_cursor_left_n_columns(line_ctx, line_ctx->edit_index - original_cursor_position);
     }
 }
 
 void redisplay_line(line_context_st * const line_ctx)
 {
-    size_t const original_cursor_index = line_ctx->cursor_index;
+    size_t const original_cursor_index = line_ctx->edit_index;
     terminal_cursor_st * const terminal_cursor = &line_ctx->terminal_cursor; 
 
     tty_put(line_ctx->terminal_fd, '\n');
@@ -167,14 +167,14 @@ void redisplay_line(line_context_st * const line_ctx)
                   line_ctx->terminal_width);
 
     terminal_puts(terminal_cursor, 
-                  line_ctx->buffer, 
+                  line_ctx->edit_buffer, 
                   line_ctx->mask_character, 
                   line_ctx->terminal_fd,
                   line_ctx->terminal_width);
     /* The terminal cursor will now be at the end of the line, so 
      * update the editing position to match. 
      */
-    line_ctx->cursor_index = strlen(line_ctx->buffer);
+    line_ctx->edit_index = strlen(line_ctx->edit_buffer);
 
     restore_cursor_position(line_ctx, original_cursor_index);
 }
@@ -194,17 +194,17 @@ bool line_context_init(line_context_st * const line_context,
     line_context->size_increment = size_increment == 0 ? 1 : size_increment;
     line_context->buffer_size = initial_size;
     /* free any old line_buffer */
-    free(line_context->buffer);
-    line_context->buffer = (char *)malloc(line_context->buffer_size);
-    if (line_context->buffer == NULL)
+    free(line_context->edit_buffer);
+    line_context->edit_buffer = (char *)malloc(line_context->buffer_size);
+    if (line_context->edit_buffer == NULL)
     {
         init_ok = false;
         goto done;
     }
     line_context->line_length = 0;
-    line_context->buffer[line_context->line_length] = '\0';
+    line_context->edit_buffer[line_context->line_length] = '\0';
     line_context->maximum_line_length = maximum_line_length;
-    line_context->cursor_index = 0; 
+    line_context->edit_index = 0; 
 
     line_context->terminal_fd = terminal_fd;
     line_context->terminal_width = terminal_width;
@@ -223,17 +223,17 @@ done:
 void line_context_teardown(line_context_st * const line_context)
 {
     /* free any old line_buffer */
-    free(line_context->buffer);
-    line_context->buffer = NULL;
+    free(line_context->edit_buffer);
+    line_context->edit_buffer = NULL;
 }
 
 void move_cursor_right_n_columns(line_context_st * const line_ctx, size_t columns)
 {
-    size_t columns_to_move = MIN(columns, line_ctx->line_length - line_ctx->cursor_index);
+    size_t columns_to_move = MIN(columns, line_ctx->line_length - line_ctx->edit_index);
 
     if (columns_to_move > 0)
     {
-        line_ctx->cursor_index += columns_to_move; 
+        line_ctx->edit_index += columns_to_move; 
 
         terminal_move_cursor_right_n_columns(&line_ctx->terminal_cursor, 
                                              columns_to_move, 
@@ -245,11 +245,11 @@ void move_cursor_right_n_columns(line_context_st * const line_ctx, size_t column
 
 void move_cursor_left_n_columns(line_context_st * const line_ctx, size_t const columns)
 {
-    size_t columns_to_move = MIN(columns, line_ctx->cursor_index);
+    size_t columns_to_move = MIN(columns, line_ctx->edit_index);
 
     if (columns_to_move > 0)
     {
-        line_ctx->cursor_index -= columns_to_move;
+        line_ctx->edit_index -= columns_to_move;
 
         terminal_move_cursor_left_n_columns(&line_ctx->terminal_cursor, 
                                             columns_to_move, 
@@ -260,7 +260,7 @@ void move_cursor_left_n_columns(line_context_st * const line_ctx, size_t const c
 
 static void delete_edit_line(line_context_st * const line_ctx)
 {
-    move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index);
+    move_cursor_left_n_columns(line_ctx, line_ctx->edit_index);
     delete_from_cursor_to_end(line_ctx);
 }
 
@@ -277,20 +277,20 @@ void replace_edit_line(line_context_st * const line_ctx, char const * const repl
 
 void delete_char_to_the_right(line_context_st * const line_ctx, bool const update_display)
 {
-    if (line_ctx->cursor_index < line_ctx->line_length)
+    if (line_ctx->edit_index < line_ctx->line_length)
     {
-        size_t const trailing_chars = line_ctx->line_length - line_ctx->cursor_index;
+        size_t const trailing_chars = line_ctx->line_length - line_ctx->edit_index;
 
         line_ctx->line_length--;
-        memmove(&line_ctx->buffer[line_ctx->cursor_index], &line_ctx->buffer[line_ctx->cursor_index + 1], trailing_chars);
-        line_ctx->buffer[line_ctx->line_length] = '\0';
+        memmove(&line_ctx->edit_buffer[line_ctx->edit_index], &line_ctx->edit_buffer[line_ctx->edit_index + 1], trailing_chars);
+        line_ctx->edit_buffer[line_ctx->line_length] = '\0';
 
         if (update_display)
         {
             terminal_cursor_st * const terminal_cursor = &line_ctx->terminal_cursor;
 
             terminal_puts(terminal_cursor, 
-                          &line_ctx->buffer[line_ctx->cursor_index], 
+                          &line_ctx->edit_buffer[line_ctx->edit_index], 
                           line_ctx->mask_character,
                           line_ctx->terminal_fd,
                           line_ctx->terminal_width);
@@ -318,7 +318,7 @@ void delete_char_to_the_left(line_context_st * const line_ctx)
      * operation becomes just like deleting the character to the 
      * right. 
      */
-    if (line_ctx->cursor_index > 0)
+    if (line_ctx->edit_index > 0)
     {
         move_cursor_left_n_columns(line_ctx, 1);
         delete_char_to_the_right(line_ctx, true);
@@ -370,7 +370,7 @@ static void delete_to_end_of_word(line_context_st * const line_ctx, bool const u
     /* TODO - Use field separators rather than isspace? Use 
      * isalnum() instead of !isspace()? 
      */
-    while (line_ctx->buffer[line_ctx->cursor_index] != '\0' && !isspace(line_ctx->buffer[line_ctx->cursor_index]))
+    while (line_ctx->edit_buffer[line_ctx->edit_index] != '\0' && !isspace(line_ctx->edit_buffer[line_ctx->edit_index]))
     {
         delete_char_to_the_right(line_ctx, update_terminal);
     }
@@ -385,17 +385,17 @@ void complete_word(line_context_st * const line_ctx, char const * const completi
     write_string(line_ctx, completion, true, update_terminal);
 }
 
-void free_saved_line(char const * * const saved_line)
+void free_saved_string(char const * * const saved_line)
 {
     free((void *) *saved_line);
     *saved_line = NULL;
 }
 
-void save_current_line(line_context_st * const line_ctx, char const * * const destination)
+void save_string(line_context_st * const line_ctx, char const * * const destination)
 {
     /* Free any old string at the destination. */
-    free_saved_line(destination);
-    *destination = strdup(line_ctx->buffer);
+    free_saved_string(destination);
+    *destination = strdup(line_ctx->edit_buffer);
 }
 
 /* Transpose two characters at the cursor position. */
@@ -409,20 +409,20 @@ void transpose_characters(line_context_st * const line_ctx)
     {
         goto done;
     }
-    if (line_ctx->cursor_index == 0)
+    if (line_ctx->edit_index == 0)
     {
         goto done;
     }
-    if (line_ctx->cursor_index == line_ctx->line_length)
+    if (line_ctx->edit_index == line_ctx->line_length)
     {
-        first_char = line_ctx->buffer[line_ctx->cursor_index - 2];
-        second_char = line_ctx->buffer[line_ctx->cursor_index - 1];
+        first_char = line_ctx->edit_buffer[line_ctx->edit_index - 2];
+        second_char = line_ctx->edit_buffer[line_ctx->edit_index - 1];
         columns_to_move_left = 2;
     }
     else
     {
-        first_char = line_ctx->buffer[line_ctx->cursor_index - 1];
-        second_char = line_ctx->buffer[line_ctx->cursor_index];
+        first_char = line_ctx->edit_buffer[line_ctx->edit_index - 1];
+        second_char = line_ctx->edit_buffer[line_ctx->edit_index];
         columns_to_move_left = 1;
     }
 
@@ -444,12 +444,12 @@ size_t get_index_of_start_of_previous_word(line_context_st * const line_ctx)
 {
     size_t index;
 
-    if (line_ctx->cursor_index > 0)
+    if (line_ctx->edit_index > 0)
     {
         /* Move left passed word separators. */
-        for (index = line_ctx->cursor_index - 1; index != 0; index--)
+        for (index = line_ctx->edit_index - 1; index != 0; index--)
         {
-            if (!is_word_separator(line_ctx->buffer[index]))
+            if (!is_word_separator(line_ctx->edit_buffer[index]))
             {
                 break;
             }
@@ -459,7 +459,7 @@ size_t get_index_of_start_of_previous_word(line_context_st * const line_ctx)
          */
         for (; index > 0; index--)
         {
-            if (is_word_separator(line_ctx->buffer[index - 1]))
+            if (is_word_separator(line_ctx->edit_buffer[index - 1]))
             {
                 break;
             }
@@ -477,12 +477,12 @@ size_t get_index_of_end_of_next_word(line_context_st * const line_ctx)
 {
     size_t index;
 
-    if (line_ctx->cursor_index < line_ctx->line_length)
+    if (line_ctx->edit_index < line_ctx->line_length)
     {
         /* Move right passed word separators. */
-        for (index = line_ctx->cursor_index + 1; index < line_ctx->line_length; index++)
+        for (index = line_ctx->edit_index + 1; index < line_ctx->line_length; index++)
         {
-            if (!is_word_separator(line_ctx->buffer[index]))
+            if (!is_word_separator(line_ctx->edit_buffer[index]))
             {
                 break;
             }
@@ -491,7 +491,7 @@ size_t get_index_of_end_of_next_word(line_context_st * const line_ctx)
          */
         for (; index < line_ctx->line_length; index++)
         {
-            if (is_word_separator(line_ctx->buffer[index]))
+            if (is_word_separator(line_ctx->edit_buffer[index]))
             {
                 break;
             }
@@ -509,9 +509,9 @@ void move_left_to_beginning_of_word(line_context_st * const line_ctx)
 {
     size_t const index = get_index_of_start_of_previous_word(line_ctx);
 
-    if (index != line_ctx->cursor_index)
+    if (index != line_ctx->edit_index)
     {
-        move_cursor_left_n_columns(line_ctx, line_ctx->cursor_index - index);
+        move_cursor_left_n_columns(line_ctx, line_ctx->edit_index - index);
     }
 }
 
@@ -519,9 +519,9 @@ void move_right_to_end_of_word(line_context_st * const line_ctx)
 {
     size_t const index = get_index_of_end_of_next_word(line_ctx);
 
-    if (index != line_ctx->cursor_index)
+    if (index != line_ctx->edit_index)
     {
-        move_cursor_right_n_columns(line_ctx, index - line_ctx->cursor_index);
+        move_cursor_right_n_columns(line_ctx, index - line_ctx->edit_index);
     }
 }
 
@@ -529,9 +529,9 @@ void delete_previous_word(line_context_st * const line_ctx)
 {
     size_t const index = get_index_of_start_of_previous_word(line_ctx);
 
-    if (index < line_ctx->cursor_index)
+    if (index < line_ctx->edit_index)
     {
-        delete_chars_to_the_left(line_ctx, line_ctx->cursor_index - index);
+        delete_chars_to_the_left(line_ctx, line_ctx->edit_index - index);
     }
 }
 
@@ -539,9 +539,9 @@ void delete_to_next_word(line_context_st * const line_ctx)
 {
     size_t const index = get_index_of_end_of_next_word(line_ctx);
 
-    if (index > line_ctx->cursor_index)
+    if (index > line_ctx->edit_index)
     {
-        delete_chars_to_the_right(line_ctx, index - line_ctx->cursor_index);
+        delete_chars_to_the_right(line_ctx, index - line_ctx->edit_index);
     }
 }
 
