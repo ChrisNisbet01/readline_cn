@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #define HISTORY_SIZE 10
+#define UNUSED_PARAMETER(param) (void)param
 
 static char * arg0_items[] =
 {
@@ -53,10 +54,10 @@ static int do_command_name_completion(completion_context_st * const completion_c
 static int test_completion_callback(completion_context_st * const completion_context,
                                     void * const user_context)
 {
-    size_t index;
-    (void)user_context;
     int result = 0;
     size_t const current_token_index = completion_context->tokens_get_current_token_index_fn(completion_context); 
+
+    UNUSED_PARAMETER(user_context);
 
     if (current_token_index == 0)
     {
@@ -73,16 +74,17 @@ static int test_completion_callback(completion_context_st * const completion_con
 static int test_help_callback(help_context_st * const help_context,
                                     void * const user_context)
 {
-    (void)user_context;
     int result = 1;
     size_t const current_token_index = help_context->tokens_get_current_token_index_fn(help_context);
+
+    UNUSED_PARAMETER(user_context);
 
     dprintf(help_context->write_back_fd, "\nhere's some help and current token_index %u\n", current_token_index);
 
     return result;
 }
 
-static void free_args(size_t argc, char const * * const argv)
+static void free_args(size_t argc, char const * const * const argv)
 {
     if (argv != NULL)
     {
@@ -92,7 +94,17 @@ static void free_args(size_t argc, char const * * const argv)
         {
             free((void *)argv[index]);
         }
-        free(argv);
+        free((void *)argv);
+    }
+}
+
+static void do_print_args(int const argc, char const * const * const argv)
+{
+    int index;
+
+    for (index = 0; index < argc; index++)
+    {
+        printf("Got arg %d: '%s'\n", index, argv[index]);
     }
 }
 
@@ -114,15 +126,94 @@ static bool get_password(readline_st * const readline_ctx)
     }
     free(line);
     readline_context_mask_character_control(readline_ctx, previous_mask_control_character);
+
+    return got_password;
 }
 
-int main(int argc, char * argv[]__attribute__((unused)))
+static bool process_readline_result(readline_result_t const readline_result, int const argc, char const * const * const argv)
 {
-    char * prompt; 
-    readline_st * readline_ctx;
-    bool do_read_line;
+    bool continue_processing;
+    bool print_args;
 
-    prompt = "Prompt> ";
+    switch (readline_result)
+    {
+        case readline_result_success:
+        {
+            print_args = true;
+            continue_processing = true;
+            break;
+        }
+        case readline_result_ctrl_c:
+            printf("Got CTRL-C\n");
+            print_args = false;
+            continue_processing = false;
+            break;
+        case readline_result_timed_out:
+            printf("Timed out\n");
+            print_args = false;
+            continue_processing = false;
+            break;
+        case readline_result_eof:
+        {
+            printf("Got EOF\n");
+            print_args = true;
+            continue_processing = false;
+            break;
+        }
+        case readline_result_error:
+            printf("Got error\n");
+            print_args = false;
+            continue_processing = false;
+            break;
+        default:
+            print_args = false;
+            continue_processing = false;
+    }
+
+    if (print_args)
+    {
+        do_print_args(argc, argv);
+    }
+
+    return continue_processing;
+}
+
+static bool read_line(readline_st * const readline_ctx, char const * const prompt)
+{
+    bool continue_processing;
+    size_t readline_argc;
+    char const * * readline_argv = NULL;
+
+    readline_result_t const result = readline_args(readline_ctx, 60, prompt, &readline_argc, &readline_argv);
+
+    continue_processing = process_readline_result(result, readline_argc, readline_argv);
+
+    free_args(readline_argc, readline_argv);
+
+    return continue_processing;
+}
+
+static void read_lines(readline_st * const readline_ctx)
+{
+    bool continue_processing;
+    char const prompt[] = "Prompt> ";
+
+    readline_context_set_field_separators(readline_ctx, "|");
+    readline_context_set_maximum_line_length(readline_ctx, 256);
+
+    do
+    {
+        continue_processing = read_line(readline_ctx, prompt);
+    }
+    while (continue_processing);
+}
+
+int main(int argc, char * * argv)
+{
+    readline_st * readline_ctx;
+
+    UNUSED_PARAMETER(argc);
+    UNUSED_PARAMETER(argv);
 
     readline_ctx = readline_context_create(NULL, 
                                            test_completion_callback,
@@ -137,62 +228,11 @@ int main(int argc, char * argv[]__attribute__((unused)))
         goto done;
     }
     get_password(readline_ctx);
-
-    readline_context_set_field_separators(readline_ctx, "|"); 
-    readline_context_set_maximum_line_length(readline_ctx, 256);
-
-    do
-    {
-        size_t argc; 
-        char const * * argv = NULL;
-
-        readline_result_t const result = readline_args(readline_ctx, 60, prompt, &argc, &argv);
-
-        switch (result)
-        {
-            case readline_result_success:
-            {
-                int index;
-                
-                for (index = 0; index < argc; index++)
-                {
-                    printf("Got arg %d: '%s'\n", index, argv[index]);
-                }
-                do_read_line = true;
-                break;
-            }
-            case readline_result_ctrl_c:
-                do_read_line = false;
-                printf("Got CTRL-C\n");
-                break;
-            case readline_result_timed_out:
-                do_read_line = false;
-                printf("Timed out\n");
-                break;
-            case readline_result_eof:
-            {
-                printf("Got EOF\n");
-                int index;
-
-                for (index = 0; index < argc; index++)
-                {
-                    printf("Got arg %d: '%s'\n", index, argv[index]);
-                }
-                do_read_line = false;
-                break;
-            }
-            case readline_result_error:
-                do_read_line = false;
-                printf("Got error\n");
-                break;
-        }
-        free_args(argc, argv);
-    }
-    while (do_read_line);
-
-    readline_context_destroy(readline_ctx);
+    read_lines(readline_ctx);
 
 done:
+    readline_context_destroy(readline_ctx);
+
     return 0;
 }
 

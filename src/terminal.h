@@ -19,7 +19,7 @@ typedef enum tty_get_result_t
 
 typedef struct terminal_settings_st terminal_settings_st;
 
-void tty_put(int const out_fd, char const c);
+int tty_put(int const out_fd, char const c);
 void tty_puts(int const out_fd, char const * const string);
 tty_get_result_t tty_get(int const in_fd, unsigned int const maximum_seconds_to_wait, int * const character_read);
 

@@ -22,10 +22,9 @@ struct terminal_settings_st
     struct termios settings;
 };
 
-void tty_put(int const out_fd, char const ch)
+int tty_put(int const out_fd, char const ch)
 {
-    // TODO: Don't ignore return value.
-    (void)write(out_fd, &ch, sizeof ch);
+    return write(out_fd, &ch, sizeof ch);
 }
 
 void tty_puts(int const out_fd, char const * const string)

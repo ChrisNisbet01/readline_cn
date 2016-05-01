@@ -68,7 +68,10 @@ done:
 
 void readline_context_destroy(readline_st * const readline_ctx)
 {
-    readline_context_free(readline_ctx);
+    if (readline_ctx != NULL)
+    {
+        readline_context_free(readline_ctx);
+    }
 }
 
 bool readline_context_history_control(readline_st * const readline_ctx, bool const enable)
@@ -95,7 +98,7 @@ void readline_context_set_field_separators(readline_st * const readline_ctx, cha
     readline_ctx->field_separators = strdup(field_separators);
 }
 
-size_t readline_context_set_maximum_line_length(readline_st * const readline_ctx, size_t maximum_line_length)
+size_t readline_context_set_maximum_line_length(readline_st * const readline_ctx, size_t const maximum_line_length)
 {
     size_t const previous_maximum = readline_ctx->maximum_line_length;
 

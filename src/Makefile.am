@@ -20,6 +20,6 @@ libreadline_cn_la_SOURCES = readline.c \
 						read_char.c \
 						terminal_cursor.c
 						
-libreadline_cn_la_CFLAGS = -D_GNU_SOURCE -Wall -Werror -Wno-unused-result
+libreadline_cn_la_CFLAGS = -D_GNU_SOURCE -Wall -Werror
 SUBDIRS = tests
 
