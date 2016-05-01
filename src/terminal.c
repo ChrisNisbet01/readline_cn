@@ -6,13 +6,21 @@
 
 #include "terminal.h"
 
+#include <termios.h>
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 
 #define DEFAULT_SCREEN_COLUMNS 80
+
+typedef struct terminal_settings_st terminal_settings_st;
+struct terminal_settings_st
+{
+    struct termios settings;
+};
 
 void tty_put(int const out_fd, char const ch)
 {
@@ -161,16 +169,25 @@ static int setattr(int fd, int opt, const struct termios * arg)
     return result;
 }
 
-void terminal_prepare(struct termios * const previous_terminal_settings)
+terminal_settings_st * terminal_prepare(void)
 {
+    terminal_settings_st * previous_terminal_settings;
     struct termios new_terminal_settings;
 
-    if (-1 == getattr(0, previous_terminal_settings))
+    previous_terminal_settings = malloc(sizeof *previous_terminal_settings);
+    if (previous_terminal_settings == NULL)
+    {
+        goto done;
+    }
+
+    if (-1 == getattr(0, &previous_terminal_settings->settings))
     {
         perror("Failed tcgetattr()");
     }
 
-    new_terminal_settings = *previous_terminal_settings;
+    /* Base the new settings off the original settings. */
+    new_terminal_settings = previous_terminal_settings->settings;
+    /* Make the required changes. */
     new_terminal_settings.c_lflag &= ~(ECHO | ICANON | ISIG); /* no echo, canonical mode off, no signals */
     new_terminal_settings.c_iflag &= ~(INPCK | ISTRIP); /* turn off parity check, don't strip top bit */
 
@@ -181,13 +198,20 @@ void terminal_prepare(struct termios * const previous_terminal_settings)
     {
         perror("Failed tcsetattr(TCSADRAIN)");
     }
+
+done:
+    return previous_terminal_settings;
 }
 
-void terminal_restore(struct termios * const previous_terminal_settings)
+void terminal_restore(terminal_settings_st * const previous_terminal_settings)
 {
-    if (-1 == setattr(0, TCSADRAIN, previous_terminal_settings))
+    if (previous_terminal_settings != NULL)
     {
-        perror("Failed tcsetattr(TCSADRAIN)");
+        if (-1 == setattr(0, TCSADRAIN, &previous_terminal_settings->settings))
+        {
+            perror("Failed tcsetattr(TCSADRAIN)");
+        }
+        free(previous_terminal_settings);
     }
 }
 

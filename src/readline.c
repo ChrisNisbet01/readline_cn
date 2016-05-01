@@ -149,7 +149,7 @@ static bool readline_init(readline_st * const readline_ctx,
 
         history_reset(readline_ctx->history);
 
-        terminal_prepare(&readline_ctx->previous_terminal_settings);
+        readline_ctx->previous_terminal_settings = terminal_prepare();
         readline_ctx->terminal_was_modified = true;
     }
     else
@@ -186,7 +186,8 @@ static void readline_cleanup(readline_st * const readline_ctx)
 
     if (readline_ctx->terminal_was_modified)
     {
-        terminal_restore(&readline_ctx->previous_terminal_settings);
+        terminal_restore(readline_ctx->previous_terminal_settings);
+        readline_ctx->previous_terminal_settings = NULL;
     }
 
     line_context_teardown(line_ctx);

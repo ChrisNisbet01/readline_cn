@@ -9,8 +9,8 @@
 
 #include "readline.h"
 #include "history.h"
+#include "terminal.h"
 
-#include <termios.h>
 #include <stdbool.h>
 
 struct readline_st
@@ -22,7 +22,7 @@ struct readline_st
 
     bool is_a_terminal;
     bool terminal_was_modified;
-    struct termios previous_terminal_settings;
+    terminal_settings_st * previous_terminal_settings;
 
     bool insert_mode; 
     int mask_character; /* if non-zero, the terminal writes out this character rather than the actual character. */
@@ -37,7 +37,7 @@ struct readline_st
     void * user_context; /* user specific context passed back to the user when performing auto-complete or help */
     completion_callback_fn completion_callback;
     help_callback_fn help_callback;
-    char help_key; /* Usually a '?'. Calls the help callback if not NULL. */
+    char help_key; /* If set, would usually be to '?'. Calls the help callback if that's not NULL. */
 };
 
 #endif /* __READLINE_CONTEXT_H__ */
