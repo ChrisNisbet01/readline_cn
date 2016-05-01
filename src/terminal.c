@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
-#include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 

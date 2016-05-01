@@ -12,8 +12,7 @@
 #include "line_context.h"
 #include "tokenise.h"
 
-#include <termios.h>
-#include <stdbool.h>
+#include <stddef.h>
 
 #define CTL(x)          ((x) & 0x1F)
 #define ISCTL(x)        ((x) && (x) < 0x20)
