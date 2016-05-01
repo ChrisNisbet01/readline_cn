@@ -5,6 +5,7 @@
  */
 
 #include "args.h"
+#include "utils.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +19,7 @@ static void free_args_array(size_t const num_args, char const * * const args)
 
     for (index = 0; index < num_args; index++)
     {
-        free((void *)args[index]);
+        FREE_CONST(args[index]);
     }
     free(args);
 }
@@ -31,7 +32,7 @@ void args_free(args_st const * const args)
         {
             free_args_array(args->argc, args->argv);
         }
-        free((void *)args);
+        FREE_CONST(args);
     }
 }
 

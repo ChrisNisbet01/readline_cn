@@ -7,6 +7,7 @@
 #include "readline.h"
 #include "directory.h"
 #include "split_path.h"
+#include "utils.h"
 
 #include <dirent.h>
 #include <string.h>
@@ -132,8 +133,8 @@ int do_filename_completion(completion_context_st * const completion_context,
 
     do_complete_filename_matches(completion_context, dir, file);
 
-    free((void *)dir);
-    free((void *)file);
+    FREE_CONST(dir);
+    FREE_CONST(file);
 
 done:
     return 0;

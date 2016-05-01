@@ -58,7 +58,7 @@ void redisplay_line(line_context_st * const line_ctx);
 void free_saved_string(char const * * const saved_line);
 void save_string(line_context_st * const line_ctx, char const * * const destination); 
 void delete_from_cursor_to_end(line_context_st * const line_ctx);
-void delete_from_cursor_to_start(line_context_st * const line_ctx); 
+void delete_from_start_to_cursor(line_context_st * const line_ctx);
 void transpose_characters(line_context_st * const line_ctx);
 size_t get_index_of_start_of_previous_word(line_context_st * const line_ctx);
 size_t get_index_of_end_of_next_word(line_context_st * const line_ctx);

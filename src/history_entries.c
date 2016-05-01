@@ -5,6 +5,7 @@
  */
 
 #include "history_entries.h"
+#include "utils.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -118,7 +119,7 @@ void history_entry_free(history_entry_st * const entry)
 {
     if (entry != NULL)
     {
-        free((void *)entry->value);
+        FREE_CONST(entry->value);
         free(entry);
     }
 }

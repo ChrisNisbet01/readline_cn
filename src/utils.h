@@ -21,6 +21,7 @@
         const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
         (type *)( (char *)__mptr - offsetof(type,member) );})
 
-
+#define UNUSED_PARAMETER(param) (void)param
+#define FREE_CONST(const_mem) free((void *)(const_mem))
 
 #endif /* __UTILS_H__ */

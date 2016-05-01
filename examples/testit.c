@@ -15,6 +15,7 @@
 
 #define HISTORY_SIZE 10
 #define UNUSED_PARAMETER(param) (void)param
+#define FREE_CONST(const_mem) free((void *)(const_mem))
 
 static char * arg0_items[] =
 {
@@ -79,7 +80,7 @@ static int test_help_callback(help_context_st * const help_context,
 
     UNUSED_PARAMETER(user_context);
 
-    dprintf(help_context->write_back_fd, "\nhere's some help and current token_index %u\n", current_token_index);
+    dprintf(help_context->write_back_fd, "\nhere's some help and current token_index %zu\n", current_token_index);
 
     return result;
 }
@@ -92,9 +93,9 @@ static void free_args(size_t argc, char const * const * const argv)
 
         for (index = 0; index < argc; index++)
         {
-            free((void *)argv[index]);
+            FREE_CONST(argv[index]);
         }
-        free((void *)argv);
+        FREE_CONST(argv);
     }
 }
 
@@ -111,7 +112,7 @@ static void do_print_args(int const argc, char const * const * const argv)
 static bool get_password(readline_st * const readline_ctx)
 {
     char * line = NULL;
-    char const previous_mask_control_character = readline_context_mask_character_control(readline_ctx, '*'); 
+    char const previous_mask_control_character = readline_set_mask_character(readline_ctx, '*');
     readline_result_t const result = readline(readline_ctx, 60, "Password> ", &line);
     bool got_password;
 
@@ -125,7 +126,7 @@ static bool get_password(readline_st * const readline_ctx)
         got_password = false; 
     }
     free(line);
-    readline_context_mask_character_control(readline_ctx, previous_mask_control_character);
+    readline_set_mask_character(readline_ctx, previous_mask_control_character);
 
     return got_password;
 }
@@ -198,8 +199,8 @@ static void read_lines(readline_st * const readline_ctx)
     bool continue_processing;
     char const prompt[] = "Prompt> ";
 
-    readline_context_set_field_separators(readline_ctx, "|");
-    readline_context_set_maximum_line_length(readline_ctx, 256);
+    readline_set_field_separators(readline_ctx, "|");
+    readline_set_maximum_line_length(readline_ctx, 256);
 
     do
     {

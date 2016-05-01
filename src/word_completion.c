@@ -106,7 +106,7 @@ static int unique_match_set(completion_context_st * const completion_context,
     private_completion_context_st * const private_completion_context =
         GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(completion_context);
 
-    free((void *)private_completion_context->unique_match);
+    FREE_CONST(private_completion_context->unique_match);
     private_completion_context->unique_match = strdup(unique_match);
 
     return 0;
@@ -233,7 +233,7 @@ static void process_unique_match(private_completion_context_st * const private_c
     if (longest_completion_suffix != NULL)
     {
         complete_word(line_ctx, longest_completion_suffix, true);
-        free((void *)longest_completion_suffix);
+        FREE_CONST(longest_completion_suffix);
     }
 }
 
@@ -281,7 +281,7 @@ static bool process_multiple_matches(line_context_st * const line_ctx,
             complete_word(line_ctx,
                           longest_completion_suffix,
                           !printed_additional_lines);
-            free((void *)longest_completion_suffix);
+            FREE_CONST(longest_completion_suffix);
         }
     }
     return need_to_redisplay_line;

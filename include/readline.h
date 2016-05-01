@@ -78,12 +78,12 @@ readline_st * readline_context_create(void * const user_context,
                                       int input_fd,
                                       int output_fd,
                                       size_t const history_size);
-bool readline_context_history_control(readline_st * const readline_ctx, bool const enable);
-char readline_context_mask_character_control(readline_st * const readline_ctx, char const mask_character);
-void readline_context_set_field_separators(readline_st * const readline_ctx, char const * const field_separators);
-size_t readline_context_set_maximum_line_length(readline_st * const readline_ctx, size_t const maximum_line_length);
-
 void readline_context_destroy(readline_st * const readline_ctx);
+
+bool readline_history_control(readline_st * const readline_ctx, bool const enable);
+char readline_set_mask_character(readline_st * const readline_ctx, char const mask_character);
+void readline_set_field_separators(readline_st * const readline_ctx, char const * const field_separators);
+size_t readline_set_maximum_line_length(readline_st * const readline_ctx, size_t const maximum_line_length); 
 
 readline_result_t readline(readline_st * const readline_ctx,
                            unsigned int const timeout_seconds,

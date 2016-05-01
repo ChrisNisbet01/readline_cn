@@ -5,6 +5,7 @@
  */
 
 #include "readline_context.h"
+#include "utils.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -21,7 +22,7 @@ static readline_st * readline_context_alloc(void)
 
 static void readline_context_free(readline_st * const readline_ctx)
 {
-    free((void *)readline_ctx->field_separators);
+    FREE_CONST(readline_ctx->field_separators);
     line_context_teardown(&readline_ctx->line_context);
     history_free(readline_ctx->history);
     free_saved_string(&readline_ctx->saved_line);
@@ -62,7 +63,6 @@ readline_st * readline_context_create(void * const user_context,
     readline_ctx->history_enabled = true;
 
 done:
-
     return readline_ctx;
 }
 
@@ -74,35 +74,75 @@ void readline_context_destroy(readline_st * const readline_ctx)
     }
 }
 
-bool readline_context_history_control(readline_st * const readline_ctx, bool const enable)
+bool readline_history_control(readline_st * const readline_ctx, bool const enable)
 {
-    bool const previous_enable_state = readline_ctx->history_enabled;
+    bool previous_enable_state;
 
-    readline_ctx->history_enabled = enable;
+    if (readline_ctx != NULL)
+    {
+        previous_enable_state = readline_ctx->history_enabled;
+
+        readline_ctx->history_enabled = enable;
+    }
+    else
+    {
+        /* XXX - return error? */
+        previous_enable_state = false;
+    }
 
     return previous_enable_state;
 }
 
-char readline_context_mask_character_control(readline_st * const readline_ctx, char const mask_character)
+char readline_set_mask_character(readline_st * const readline_ctx, char const mask_character)
 {
-    char const previous_mask_character = readline_ctx->mask_character;
+    char previous_mask_character;
 
-    readline_ctx->mask_character = mask_character;
+    if (readline_ctx != NULL)
+    {
+        previous_mask_character = readline_ctx->mask_character;
+
+        readline_ctx->mask_character = mask_character;
+    }
+    else
+    {
+        /* XXX - Return error? */
+        previous_mask_character = '\0';
+    }
 
     return previous_mask_character;
 }
 
-void readline_context_set_field_separators(readline_st * const readline_ctx, char const * const field_separators)
+void readline_set_field_separators(readline_st * const readline_ctx, char const * const field_separators)
 {
-    free((void *)readline_ctx->field_separators);
-    readline_ctx->field_separators = strdup(field_separators);
+    if (readline_ctx != NULL)
+    {
+        FREE_CONST(readline_ctx->field_separators);
+        if (field_separators != NULL)
+        {
+            readline_ctx->field_separators = strdup(field_separators);
+        }
+        else
+        {
+            readline_ctx->field_separators = NULL;
+        }
+    }
 }
 
-size_t readline_context_set_maximum_line_length(readline_st * const readline_ctx, size_t const maximum_line_length)
+size_t readline_set_maximum_line_length(readline_st * const readline_ctx, size_t const maximum_line_length)
 {
-    size_t const previous_maximum = readline_ctx->maximum_line_length;
+    size_t previous_maximum;
 
-    readline_ctx->maximum_line_length = maximum_line_length;
+    if (readline_ctx != NULL)
+    {
+        previous_maximum = readline_ctx->maximum_line_length;
+
+        readline_ctx->maximum_line_length = maximum_line_length;
+    }
+    else
+    {
+        /* XXX return error? */
+        previous_maximum = 0;
+    }
 
     return previous_maximum;
 }

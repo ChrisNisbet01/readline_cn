@@ -130,7 +130,7 @@ done:
     return char_was_written;
 }
 
-void delete_from_cursor_to_start(line_context_st * const line_ctx)
+void delete_from_start_to_cursor(line_context_st * const line_ctx)
 {
     delete_chars_to_the_left(line_ctx, line_ctx->edit_index);
 }
@@ -387,7 +387,7 @@ void complete_word(line_context_st * const line_ctx, char const * const completi
 
 void free_saved_string(char const * * const saved_line)
 {
-    free((void *) *saved_line);
+    FREE_CONST(*saved_line);
     *saved_line = NULL;
 }
 

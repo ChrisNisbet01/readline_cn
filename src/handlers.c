@@ -46,7 +46,7 @@ static void handle_control_k(readline_st * const readline_ctx)
 
 static void handle_control_u(readline_st * const readline_ctx)
 {
-    delete_from_cursor_to_start(&readline_ctx->line_context);
+    delete_from_start_to_cursor(&readline_ctx->line_context);
 }
 
 static void handle_control_left(readline_st * const readline_ctx)

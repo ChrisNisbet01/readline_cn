@@ -114,6 +114,7 @@ static void private_help_context_process_results(private_help_context_st * const
                                                        bool const characters_were_printed)
 {
     bool need_to_redisplay_line;
+    UNUSED_PARAMETER(private_help_context);
 
     need_to_redisplay_line = characters_were_printed;
 
