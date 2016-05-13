@@ -84,6 +84,7 @@ bool readline_history_control(readline_st * const readline_ctx, bool const enabl
 char readline_set_mask_character(readline_st * const readline_ctx, char const mask_character);
 void readline_set_field_separators(readline_st * const readline_ctx, char const * const field_separators);
 size_t readline_set_maximum_line_length(readline_st * const readline_ctx, size_t const maximum_line_length); 
+void readline_set_initial_timeout_check(readline_st * const readline_ctx, bool const do_initial_check);
 
 readline_result_t readline(readline_st * const readline_ctx,
                            unsigned int const timeout_seconds,

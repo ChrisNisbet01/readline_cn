@@ -113,8 +113,12 @@ static bool get_password(readline_st * const readline_ctx)
 {
     char * line = NULL;
     char const previous_mask_control_character = readline_set_mask_character(readline_ctx, '*');
-    readline_result_t const result = readline(readline_ctx, 60, "Password> ", &line);
+    readline_result_t result;
     bool got_password;
+
+    readline_set_initial_timeout_check(readline_ctx, false);
+
+    result = readline(readline_ctx, 15, "Password> ", &line); 
 
     if (result == readline_result_success || result == readline_result_eof)
     {
@@ -185,7 +189,7 @@ static bool read_line(readline_st * const readline_ctx, char const * const promp
     size_t readline_argc;
     char const * * readline_argv = NULL;
 
-    readline_result_t const result = readline_args(readline_ctx, 60, prompt, &readline_argc, &readline_argv);
+    readline_result_t const result = readline_args(readline_ctx, 15, prompt, &readline_argc, &readline_argv);
 
     continue_processing = process_readline_result(result, readline_argc, readline_argv);
 
@@ -201,6 +205,7 @@ static void read_lines(readline_st * const readline_ctx)
 
     readline_set_field_separators(readline_ctx, "|");
     readline_set_maximum_line_length(readline_ctx, 256);
+    readline_set_initial_timeout_check(readline_ctx, true); 
 
     do
     {

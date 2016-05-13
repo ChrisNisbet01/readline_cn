@@ -234,9 +234,9 @@ static readline_status_t handle_escape_o(readline_st * const readline_ctx)
     readline_status_t status;
     int escape_command_char;
 
-    escape_command_char = read_char_from_input_descriptor(readline_ctx->in_fd,
-                                                          readline_ctx->maximum_seconds_to_wait_for_char,
-                                                          &status);
+    escape_command_char = read_char_from_input(readline_ctx->in_fd,
+                                               readline_ctx->maximum_seconds_to_wait_for_char,
+                                               &status);
     if (status != readline_status_continue)
     {
         goto done;
@@ -372,9 +372,9 @@ static readline_status_t handle_escape_left_bracket(readline_st * const readline
     int escape_command_char;
     int ch;
 
-    escape_command_char = read_char_from_input_descriptor(readline_ctx->in_fd,
-                                                          readline_ctx->maximum_seconds_to_wait_for_char,
-                                                          &status);
+    escape_command_char = read_char_from_input(readline_ctx->in_fd,
+                                               readline_ctx->maximum_seconds_to_wait_for_char,
+                                               &status);
     if (status != readline_status_continue)
     {
         goto done;
@@ -447,9 +447,9 @@ readline_status_t handle_escaped_char(readline_st * const readline_ctx)
     readline_status_t status;
     int escaped_char;
 
-    escaped_char = read_char_from_input_descriptor(readline_ctx->in_fd,
-                                                   readline_ctx->maximum_seconds_to_wait_for_char,
-                                                   &status);
+    escaped_char = read_char_from_input(readline_ctx->in_fd,
+                                        readline_ctx->maximum_seconds_to_wait_for_char,
+                                        &status);
     if (status != readline_status_continue)
     {
         goto done;

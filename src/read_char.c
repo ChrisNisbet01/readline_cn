@@ -7,7 +7,7 @@
 #include "read_char.h"
 #include "terminal.h"
 
-int read_char_from_input_descriptor(int const input_fd, unsigned int const maximum_seconds_to_wait, readline_status_t * const readline_status)
+int read_char_from_input(int const input_fd, unsigned int const maximum_seconds_to_wait, readline_status_t * const readline_status)
 {
     int ch;
     readline_status_t status;

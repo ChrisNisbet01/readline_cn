@@ -79,6 +79,7 @@ static readline_status_t process_new_input(readline_st * const readline_ctx, int
 {
     readline_status_t status;
 
+    readline_ctx->line_context.any_chars_read = true;
     if (readline_ctx->is_a_terminal)
     {
         status = handle_new_input_from_terminal(readline_ctx, ch);
@@ -91,14 +92,31 @@ static readline_status_t process_new_input(readline_st * const readline_ctx, int
     return status;
 }
 
+static unsigned int get_read_timeout(readline_st * const readline_ctx)
+{
+    unsigned int timeout_seconds;
+
+    if (readline_ctx->check_timeout_before_any_chars_read || readline_ctx->line_context.any_chars_read)
+    {
+        timeout_seconds = readline_ctx->maximum_seconds_to_wait_for_char;
+    }
+    else
+    {
+        timeout_seconds = 0;
+    }
+
+    return timeout_seconds;
+}
+
 static readline_status_t get_and_process_new_input(readline_st * const readline_ctx)
 {
     readline_status_t status;
     int ch;
+    unsigned int const timeout_seconds = get_read_timeout(readline_ctx);
 
-    ch = read_char_from_input_descriptor(readline_ctx->in_fd,
-                                         readline_ctx->maximum_seconds_to_wait_for_char,
-                                         &status);
+    ch = read_char_from_input(readline_ctx->in_fd,
+                              timeout_seconds,
+                              &status);
     if (status != readline_status_continue)
     {
         goto done;

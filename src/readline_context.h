@@ -13,11 +13,16 @@
 
 #include <stdbool.h>
 
+/*  
+ * This structure contains variables that need to persist 
+ * between calls to readline(). 
+*/ 
 struct readline_st
 {
     int out_fd; /* File descriptor to write to. */
     int in_fd; /* File descriptor to read from. */
     unsigned int maximum_seconds_to_wait_for_char;
+    bool check_timeout_before_any_chars_read; /* set to false if there is no timeout before the user starts entering characters. */
     size_t maximum_line_length;
 
     bool is_a_terminal;

@@ -61,6 +61,7 @@ readline_st * readline_context_create(void * const user_context,
     readline_ctx->is_a_terminal = isatty(readline_ctx->in_fd);
     readline_ctx->history = history_alloc(history_size);
     readline_ctx->history_enabled = true;
+    readline_ctx->check_timeout_before_any_chars_read = true;
 
 done:
     return readline_ctx;
@@ -145,4 +146,12 @@ size_t readline_set_maximum_line_length(readline_st * const readline_ctx, size_t
     }
 
     return previous_maximum;
+}
+
+void readline_set_initial_timeout_check(readline_st * const readline_ctx, bool const do_initial_check)
+{
+    if (readline_ctx != NULL)
+    {
+        readline_ctx->check_timeout_before_any_chars_read = do_initial_check;
+    }
 }

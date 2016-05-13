@@ -201,6 +201,7 @@ bool line_context_init(line_context_st * const line_context,
         init_ok = false;
         goto done;
     }
+    line_context->any_chars_read = false;
     line_context->line_length = 0;
     line_context->edit_buffer[line_context->line_length] = '\0';
     line_context->maximum_line_length = maximum_line_length;

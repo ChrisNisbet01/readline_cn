@@ -19,6 +19,9 @@ struct terminal_cursor_st
 }; 
 
 typedef struct line_context_st line_context_st;
+/* This structure mostly contains variables that are only 
+ * needed during a single call to readline(). 
+ */
 struct line_context_st
 {
     size_t size_increment;
@@ -31,6 +34,7 @@ struct line_context_st
     size_t terminal_width;
     int mask_character; /* if non-zero, the character to write to the terminal instead of the actual character entered. */
     char const * prompt;
+    bool any_chars_read; /* initially false, then true once any characters have been read. */
 
     terminal_cursor_st terminal_cursor;
 };
