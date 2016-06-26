@@ -325,7 +325,7 @@ tokens_st * tokenise_line(char const * const line,
         {
             if (ch == double_quote_delimiter)
             {
-                size_t const index_of_end_of_word = current_index + 1; /* include the terminating double quote */
+                size_t const index_of_end_of_word = current_index; /* exclude the terminating double quote */
 
                 populate_next_token(tokens, 
                                     line, 
@@ -412,7 +412,7 @@ tokens_st * tokenise_line(char const * const line,
         {
             if (token_type == token_type_none) /* ignore double quotes embedded in words */
             {
-                token_start_index = current_index; /* include the leading double quote */
+                token_start_index = current_index + 1; /* exclude the leading double quote */
                 token_type = token_type_double_quoted;
             }
         }
