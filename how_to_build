@@ -1,3 +1,4 @@
+libtoolize
 autoreconf
 automake --add-missing
 ./configure

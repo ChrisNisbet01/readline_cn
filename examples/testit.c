@@ -76,7 +76,7 @@ static int test_help_callback(help_context_st * const help_context,
                                     void * const user_context)
 {
     int result = 1;
-    size_t const current_token_index = help_context->tokens_get_current_token_index_fn(help_context);
+    size_t const current_token_index = help_context->current_token_index;
 
     UNUSED_PARAMETER(user_context);
 

@@ -63,12 +63,12 @@ typedef char const * (* help_tokens_get_token_at_index_fn)(help_context_st * con
 
 struct help_context_st
 {
-    help_tokens_get_current_token_index_fn tokens_get_current_token_index_fn;
-    help_tokens_get_current_token_fn tokens_get_current_token_fn;
-    help_tokens_get_num_tokens_fn tokens_get_num_tokens_fn;
-    help_tokens_get_token_at_index_fn tokens_get_token_at_index_fn;
+    size_t const current_token_index;
+    char const * const current_token;
+    size_t const num_tokens;
+    help_tokens_get_token_at_index_fn const tokens_get_token_at_index_fn; 
 
-    int write_back_fd;
+    int const write_back_fd;
 }; 
 
 readline_st * readline_context_create(void * const user_context,

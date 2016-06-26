@@ -30,30 +30,6 @@ struct private_help_context_st
 #define GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(help_context) \
     container_of(help_context, private_help_context_st, public_context)
 
-static size_t get_current_token_index(help_context_st * const help_context)
-{
-    private_help_context_st * const private_help_context =
-        GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(help_context);
-
-    return tokens_get_current_token_index(private_help_context->tokens);
-}
-
-static char const * get_current_token(help_context_st * const help_context)
-{
-    private_help_context_st * const private_help_context =
-        GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(help_context); 
-
-    return tokens_get_current_token(private_help_context->tokens);
-}
-
-static size_t get_num_tokens(help_context_st * const help_context)
-{
-    private_help_context_st * const private_help_context =
-        GET_PRIVATE_CONTEXT_FROM_PUBLIC_CONTEXT(help_context); 
-
-    return tokens_get_num_tokens(private_help_context->tokens);
-}
-
 static char const * get_token_at_index(help_context_st * const help_context, size_t const index)
 {
     private_help_context_st * const private_help_context =
@@ -69,11 +45,9 @@ static void private_help_context_teardown(private_help_context_st * const privat
     if (help_context->write_back_fd != -1)
     {
         close(help_context->write_back_fd);
-        help_context->write_back_fd = -1;
     }
 
     tokens_free(private_help_context->tokens);
-    private_help_context->tokens = NULL;
 }
 
 static bool private_help_context_init(private_help_context_st * const private_help_context, 
@@ -92,12 +66,19 @@ static bool private_help_context_init(private_help_context_st * const private_he
         goto done;
     }
 
-    help_context->write_back_fd = dup(line_ctx->terminal_fd);
-
-    help_context->tokens_get_current_token_index_fn = get_current_token_index;
-    help_context->tokens_get_current_token_fn = get_current_token;
-    help_context->tokens_get_num_tokens_fn = get_num_tokens;
-    help_context->tokens_get_token_at_index_fn = get_token_at_index;
+    /* The casts are required because the struct members are 
+     * marked as const. 
+     */
+    *(int *)&help_context->write_back_fd = dup(line_ctx->terminal_fd);
+    if (help_context->write_back_fd == -1)
+    {
+        init_ok = false;
+        goto done;
+    }
+    *(size_t *)&help_context->current_token_index = tokens_get_current_token_index(private_help_context->tokens);
+    *(char const * *)&help_context->current_token = tokens_get_current_token(private_help_context->tokens);
+    *(size_t *)&help_context->num_tokens = tokens_get_num_tokens(private_help_context->tokens);
+    *(help_tokens_get_token_at_index_fn *)&help_context->tokens_get_token_at_index_fn = get_token_at_index;
 
     init_ok = true;
 
