@@ -211,7 +211,7 @@ bool line_context_init(line_context_st * const line_context,
     line_context->terminal_width = terminal_width;
 
     line_context->mask_character = mask_character;
-    line_context->prompt = prompt;
+    line_context->prompt = prompt != NULL ? prompt : "";
 
     terminal_cursor_init(&line_context->terminal_cursor);
 
