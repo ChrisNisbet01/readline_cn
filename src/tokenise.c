@@ -17,7 +17,7 @@ struct token_st
 {
     size_t start_index;
     size_t end_index;
-    char * word;
+    char * token;
 };
 
 struct tokens_st
@@ -60,32 +60,16 @@ done:
 
 static tokens_st * tokens_alloc(void)
 {
-    tokens_st * tokens;
+    tokens_st * const tokens = calloc(1, sizeof *tokens);
 
-    tokens = calloc(1, sizeof *tokens);
-    if (tokens == NULL)
-    {
-        goto done;
-    }
-
-done:
     return tokens;
 }
 
-static bool check_if_cursor_index_within_word(size_t const cursor_index, size_t const start_index, size_t const end_index)
+static bool check_if_cursor_index_within_token(size_t const cursor_index, size_t const start_index, size_t const end_index)
 {
-    bool cursor_is_within_word;
+    bool const cursor_is_within_token = cursor_index >= start_index && cursor_index <= end_index;
 
-    if (cursor_index >= start_index && cursor_index <= end_index)
-    {
-        cursor_is_within_word = true;
-    }
-    else
-    {
-        cursor_is_within_word = false;
-    }
-
-    return cursor_is_within_word;
+    return cursor_is_within_token;
 }
 
 static bool create_cursor_token_if_cursor_index_fits_in_token(char const * const line,
@@ -94,14 +78,14 @@ static bool create_cursor_token_if_cursor_index_fits_in_token(char const * const
 {
     bool cursor_falls_within_token;
 
-    cursor_falls_within_token = check_if_cursor_index_within_word(cursor_index,
+    cursor_falls_within_token = check_if_cursor_index_within_token(cursor_index,
                                                                   tokens->token_array[tokens->count].start_index,
                                                                   tokens->token_array[tokens->count].end_index);
 
     if (cursor_falls_within_token)
     {
         tokens->current_token_index = tokens->count;
-        /* Only include the part of the word from the start to the 
+        /* Only include the part of the token from the start to the 
          * current cursor position. 
          */
         tokens->current_token = strdup_partial(line,
@@ -129,9 +113,9 @@ static bool populate_next_token(tokens_st * const tokens,
         goto done;
     }
     token = &tokens->token_array[tokens->count];
-    token->word = strdup_partial(line, start_index, end_index);
+    token->token = strdup_partial(line, start_index, end_index);
 
-    if (token->word == NULL)
+    if (token->token == NULL)
     {
         populated_ok = false;
         goto done;
@@ -246,7 +230,7 @@ char const * tokens_get_token_at_index(tokens_st const * const tokens, size_t co
         token = NULL;
         goto done;
     }
-    token = tokens->token_array[index].word;
+    token = tokens->token_array[index].token;
 
 done:
     return token;
@@ -262,7 +246,7 @@ void tokens_free(tokens_st * const tokens)
 
             for (index = 0; index < tokens->count; index++)
             {
-                free(tokens->token_array[index].word);
+                free(tokens->token_array[index].token);
             }
             free(tokens->token_array);
         }
@@ -277,11 +261,10 @@ static bool char_is_field_separator(char const * const field_separators, char co
     return is_a_field_separator;
 }
 
-/* Find the start and end indexes for all words on the current 
- * line. In addition, if the cursor is between lines, add in 
+/* Find the start and end indexes for all tokens on the current 
+ * line. In addition, if the cursor is between tokens, add in 
  * an entry for this as well. Use an empty string to represent 
- * the word in that case. 
- * Return the number of line_indexes found. 
+ * the token in that case. 
  */
 tokens_st * tokenise_line(char const * const line,
                           size_t const start_index,
@@ -325,12 +308,12 @@ tokens_st * tokenise_line(char const * const line,
         {
             if (ch == double_quote_delimiter)
             {
-                size_t const index_of_end_of_word = current_index; /* exclude the terminating double quote */
+                size_t const index_of_end_of_token = current_index; /* exclude the terminating double quote */
 
                 populate_next_token(tokens, 
                                     line, 
                                     token_start_index, 
-                                    index_of_end_of_word, 
+                                    index_of_end_of_token, 
                                     assign_token_to_cursor_index,
                                     &done_cursor_index_token,
                                     cursor_index);
@@ -398,7 +381,7 @@ tokens_st * tokenise_line(char const * const line,
             }
             if (token_type == token_type_none)
             {
-                /* Create a token that includes just the pipe character. */
+                /* Create a token that includes just the field separator. */
                 populate_next_token(tokens, 
                                     line, 
                                     current_index, 
@@ -410,7 +393,7 @@ tokens_st * tokenise_line(char const * const line,
         }
         else if (ch == double_quote_delimiter)
         {
-            if (token_type == token_type_none) /* ignore double quotes embedded in words */
+            if (token_type == token_type_none) /* ignore double quotes embedded in tokens */
             {
                 token_start_index = current_index + 1; /* exclude the leading double quote */
                 token_type = token_type_double_quoted;

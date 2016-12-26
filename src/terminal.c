@@ -108,10 +108,12 @@ tty_get_result_t tty_get(int const in_fd, unsigned int const maximum_seconds_to_
         read_result = tty_get_result_eof;
         goto done;
     }
+
     if (character_read != NULL)
     {
         *character_read = ch;
     }
+
     read_result = tty_get_result_ok; 
 
 done:
