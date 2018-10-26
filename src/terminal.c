@@ -43,7 +43,7 @@ void tty_puts(int const out_fd, char const * const string)
 static bool wait_for_file_to_be_readable(int const fd, unsigned int const max_seconds_to_wait)
 {
     int select_result;
-    fd_set fd_set;
+    fd_set file_descriptor_set;
     struct timeval timeout;
     struct timeval * timeout_to_use;
     bool file_is_readable;
@@ -59,12 +59,12 @@ static bool wait_for_file_to_be_readable(int const fd, unsigned int const max_se
         timeout_to_use = NULL; /* Block indefinitely. */
     }
 
-    FD_ZERO(&fd_set);
-    FD_SET(fd, &fd_set);
+    FD_ZERO(&file_descriptor_set);
+    FD_SET(fd, &file_descriptor_set);
 
     do
     {
-        select_result = select(fd + 1, &fd_set, NULL, NULL, timeout_to_use);
+        select_result = select(fd + 1, &file_descriptor_set, NULL, NULL, timeout_to_use);
     }
     while (select_result == -1 && errno == EINTR);
 
