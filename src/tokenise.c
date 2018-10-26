@@ -335,6 +335,7 @@ tokens_st * tokenise_line(char const * const line,
             }
             else if (current_index == cursor_index)
             {
+                /* Cursor lies somewhere within the current token. */
                 if (assign_token_to_cursor_index)
                 {
                     if (!done_cursor_index_token)
@@ -359,7 +360,7 @@ tokens_st * tokenise_line(char const * const line,
                                     token_start_index, 
                                     current_index,
                                     assign_token_to_cursor_index,
-                                    & done_cursor_index_token,
+                                    &done_cursor_index_token,
                                     cursor_index);
                 token_type = token_type_none;
             }
@@ -382,12 +383,17 @@ tokens_st * tokenise_line(char const * const line,
             if (token_type == token_type_none)
             {
                 /* Create a token that includes just the field separator. */
+                /* XXX - This may need fixing. At present, the field separator 
+                 * specified is more of a command separator, and with mycli, 
+                 * happens to be the '|' character. This is why we make a 
+                 * token out of the separator. 
+                 */
                 populate_next_token(tokens, 
                                     line, 
                                     current_index, 
                                     current_index + 1,
                                     assign_token_to_cursor_index,
-                                    & done_cursor_index_token,
+                                    &done_cursor_index_token,
                                     cursor_index);
             }
         }
